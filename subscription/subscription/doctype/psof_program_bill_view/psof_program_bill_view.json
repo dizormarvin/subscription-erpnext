@@ -1,0 +1,169 @@
+{
+ "creation": "2020-11-21 16:07:55.964679",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "active",
+  "subscription_program",
+  "currency",
+  "column_break_3",
+  "date_from",
+  "date_to",
+  "section_break_5",
+  "no_of_subs",
+  "subscription_fee",
+  "vat_amount",
+  "column_break_10",
+  "subscription_rate",
+  "decoder_rate",
+  "card_rate",
+  "promo_rate",
+  "freight_rate",
+  "psof_program_bill"
+ ],
+ "fields": [
+  {
+   "fieldname": "subscription_program",
+   "fieldtype": "Link",
+   "label": "Subscription Program",
+   "options": "Subscription Program",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "date_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date From",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "date_to",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date To",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fieldname": "no_of_subs",
+   "fieldtype": "Read Only",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Subs"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "default": "0",
+   "fieldname": "subscription_fee",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "MSF",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "columns": 1,
+   "fetch_if_empty": 1,
+   "fieldname": "decoder_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "IRD",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "columns": 1,
+   "fetch_if_empty": 1,
+   "fieldname": "card_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Card",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "columns": 1,
+   "fetch_if_empty": 1,
+   "fieldname": "promo_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Promo",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fetch_if_empty": 1,
+   "fieldname": "freight_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Freight",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "fieldname": "psof_program_bill",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "PSOF Program Bill",
+   "options": "PSOF Program Bill",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "subscription_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "columns": 1,
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "VAT",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "default": "0",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "psof_program_bill.currency_used",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "PSOF Currency",
+   "options": "Currency",
+   "read_only": 1
+  }
+ ],
+ "modified": "2021-09-24 13:17:27.875267",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "PSOF Program Bill View",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

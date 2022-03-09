@@ -1,0 +1,200 @@
+{
+ "autoname": ".MM.-.YYYY.-.##",
+ "creation": "2021-04-13 15:02:49.443982",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "currency",
+  "column_break_3",
+  "subscription_period",
+  "billing_last_month",
+  "get_items",
+  "account_manager",
+  "section_break_6",
+  "bills",
+  "section_break_8",
+  "billings",
+  "section_break_10",
+  "total_subs_fee",
+  "total_subs_rate",
+  "column_break_12",
+  "total_decoder_rate",
+  "total_promo_rate",
+  "total_card_rate",
+  "total_freight_rate",
+  "amended_from",
+  "is_generated"
+ ],
+ "fields": [
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "subscription_period",
+   "fieldtype": "Link",
+   "label": "Subscription Period",
+   "options": "Subscription Period"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "get_items",
+   "fieldtype": "Button",
+   "hidden": 1,
+   "label": "Get Items"
+  },
+  {
+   "fieldname": "section_break_6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "account_manager",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Account Manager",
+   "options": "Sales Partner"
+  },
+  {
+   "fieldname": "bills",
+   "fieldtype": "Table",
+   "label": "Monthly PSOF Program Bill",
+   "options": "Monthly PSOF Program Bill"
+  },
+  {
+   "fieldname": "section_break_8",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "billings",
+   "fieldtype": "Table",
+   "hidden": 1,
+   "label": "Billing",
+   "options": "Monthly PSOF Bill"
+  },
+  {
+   "fieldname": "section_break_10",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_subs_fee",
+   "fieldtype": "Currency",
+   "label": "Total Subs Fee",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_subs_rate",
+   "fieldtype": "Currency",
+   "label": "Total Subs Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_decoder_rate",
+   "fieldtype": "Currency",
+   "label": "Total Decoder Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_promo_rate",
+   "fieldtype": "Currency",
+   "label": "Total Promo Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_card_rate",
+   "fieldtype": "Currency",
+   "label": "Total Card Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_freight_rate",
+   "fieldtype": "Currency",
+   "label": "Total Freight Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_12",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Monthly PSOF",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "default": "USD",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "billing_last_month",
+   "fieldtype": "Link",
+   "label": "Billing Last Month",
+   "options": "Monthly PSOF Billing"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_generated",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "is_generated",
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "modified": "2022-01-20 14:47:08.031323",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Monthly PSOF",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Subscription Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "subscription_period",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

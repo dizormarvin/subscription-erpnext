@@ -1,0 +1,63 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2020, ossphin and contributors
+# For license information, please see license.txt
+
+from __future__ import unicode_literals
+# import frappe
+from frappe.model.document import Document
+
+class BillingRequestBatch(Document):
+	pass
+
+    @frappe.whitelist()
+    def generate_bills(self):
+	period = self.subscription_period
+	spartner = self.sales_partner
+
+# Get Related Contracts
+	contracts = frappe.db.sql("""SELECT * FROM tabCustomer c, 'tabSubcscription Contract' s 
+		WHERE c.name = s.customer AND renewal_contract is null AND sales_partner = %;""",(spartner), as_dict=1)
+#Create Billing for Each customer
+	for c in contracts:
+		doc = frappe.new_doc("Billing Request")
+		doc.customer = c.customer
+		doc.subscription_period = period
+		doc.date = self.date
+		doc.currency = self.currency
+
+		# Get Applicable Items for Unexpired Contracts
+		items = frappe.db.sql("""SELECT i.* FROM `tabSubscription Contract` h, 
+			`tabSubscription Contract Items` i, `tabSubscription Period` p WHERE h.name = i.parent 
+			AND h.name = %s AND p.name = %s
+			AND (i.start_date <= p.start_date OR i.start_date BETWEEN p.start_date AND p.end_date)
+			AND (i.end_date >= p.end_date OR i.end_date BETWEEN p.start_date AND p.end_date;""",(c.name, period), as_dict=1)
+ 
+                for i in items:
+                    ci = doc.append('items',{
+                        "program_code": i.program_code,
+						"program_name": i.program_name,
+						"subscription_fee": i.subscription_fee,
+						"subscription_rate": i.subscription_rate,
+						"rate_per_sub": i.rate_per_sub,
+						"no_of_subs": i.no_of_subs,
+						"decoder_calculation": i.decoder_calculation,
+						"decoder_rate": i.decoder_rate,
+						"card_section": i.card_section,
+						"card_calculation": i.card_calculation,
+                        "card_rate": i.card_rate,
+                        "promo_calculation": i.promo_calculation,
+                        "promo_rate": i.promo_rate,
+                        "freight_calculation": i.freight_calculation,
+                        "freight_rate": i.freight_rate 
+					})
+            
+            doc.flags.ignore_mandatory = True
+			doc.insert()
+        
+            "Add Invoice Detail on Bill Run"
+            self.append('billing_request_batch_bills',{
+                "billing_request": doc.name,
+                "customer": doc.customer,
+                "date":  doc.date,
+                "currency": doc.currency
+            })

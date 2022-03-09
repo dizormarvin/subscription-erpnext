@@ -1,0 +1,83 @@
+{
+ "autoname": "format:AC{#####}-{psof}",
+ "creation": "2021-02-26 17:24:21.004118",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "customer_name",
+  "column_break_2",
+  "psof",
+  "section_break_4",
+  "included_programs",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "depends_on": "eval: doc.customer_name",
+   "fieldname": "psof",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "PSOF",
+   "options": "PSOF",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Program Activation",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fetch_from": "psof.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Link",
+   "label": "Cable System",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "included_programs",
+   "fieldtype": "Table",
+   "label": "Programs",
+   "options": "Program Activation Item"
+  }
+ ],
+ "is_submittable": 1,
+ "modified": "2021-08-19 14:11:10.740373",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Program Activation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

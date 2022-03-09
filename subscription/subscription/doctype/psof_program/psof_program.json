@@ -1,0 +1,578 @@
+{
+ "creation": "2020-11-21 11:53:04.515171",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "active",
+  "program_status",
+  "renewal",
+  "include_in_bill_expired_until_renewed",
+  "bill_generated",
+  "column_break_6",
+  "subscription_contract",
+  "subscription_currency",
+  "section_break_3",
+  "package",
+  "subscription_program",
+  "program_name",
+  "interval",
+  "count",
+  "start_date",
+  "end_date",
+  "column_break_7",
+  "max_bill_count",
+  "decoder_allocation_active",
+  "card_allocation_active",
+  "promo_allocation_active",
+  "freight_allocation_active",
+  "rates_section",
+  "subscription_fee",
+  "subscription_rate",
+  "vat_amount",
+  "grand_total",
+  "difference_grand_total",
+  "less_of_vat_original",
+  "column_break_13",
+  "rate_per_sub",
+  "no_of_subs",
+  "total",
+  "decoder_section",
+  "decoder_calculation",
+  "decoder_rate",
+  "decoder_difference",
+  "column_break_21",
+  "decoder_max_bill_div",
+  "decoder_max_bill_count",
+  "decoder_condition",
+  "card_section",
+  "card_calculation",
+  "card_rate",
+  "card_difference",
+  "column_break_23",
+  "card_max_bill_divisor",
+  "card_max_bill_count",
+  "card_condition",
+  "promo_section",
+  "promo_calculation",
+  "promo_rate",
+  "promo_difference",
+  "column_break_15",
+  "promo_max_bill_divisor",
+  "promo_max_bill_count",
+  "promo_condition",
+  "freight_section",
+  "freight_calculation",
+  "freight_rate",
+  "freight_difference",
+  "column_break_19",
+  "freight_max_bill_divisor",
+  "freight_max_bill_count",
+  "freight_condition",
+  "sub_total_section",
+  "psof",
+  "customer_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "subscription_program",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Program",
+   "options": "Subscription Program"
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "include_in_bill_expired_until_renewed",
+   "fieldtype": "Check",
+   "label": "Include in Bill Expired until Renewed"
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break"
+  },
+  {
+   "columns": 1,
+   "fieldname": "package",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Subscription Package",
+   "options": "Subscription Package"
+  },
+  {
+   "fieldname": "program_name",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Program Name"
+  },
+  {
+   "columns": 1,
+   "default": "Month",
+   "fieldname": "interval",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Interval",
+   "options": "Day\nWeek\nMonth\nYear",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "default": "1",
+   "fieldname": "count",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Count",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 2,
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Start Date"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 2,
+   "fetch_from": "psof.expiry_date",
+   "fetch_if_empty": 1,
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "End Date"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "fieldname": "max_bill_count",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Max Bill Count"
+  },
+  {
+   "default": "0",
+   "fieldname": "decoder_allocation_active",
+   "fieldtype": "Check",
+   "label": "Decoder Allocation Active"
+  },
+  {
+   "default": "0",
+   "fieldname": "card_allocation_active",
+   "fieldtype": "Check",
+   "label": "Card Allocation Active"
+  },
+  {
+   "default": "0",
+   "fieldname": "promo_allocation_active",
+   "fieldtype": "Check",
+   "label": "Promo Allocation Active"
+  },
+  {
+   "default": "0",
+   "fieldname": "freight_allocation_active",
+   "fieldtype": "Check",
+   "label": "Freight Allocation Active"
+  },
+  {
+   "fieldname": "rates_section",
+   "fieldtype": "Section Break",
+   "label": "Rates"
+  },
+  {
+   "default": "0",
+   "fieldname": "subscription_fee",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Monthly Subs Fee",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fetch_from": "program_code.subscription_rate",
+   "fetch_if_empty": 1,
+   "fieldname": "subscription_rate",
+   "fieldtype": "Currency",
+   "label": "MSF Less of VAT",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_13",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "subscription_program.rate_per_sub",
+   "fieldname": "rate_per_sub",
+   "fieldtype": "Read Only",
+   "label": "Rate / Sub"
+  },
+  {
+   "allow_on_submit": 1,
+   "columns": 1,
+   "fieldname": "no_of_subs",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "Subs"
+  },
+  {
+   "columns": 1,
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Allocation",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.decoder_allocation_active",
+   "fieldname": "decoder_section",
+   "fieldtype": "Section Break",
+   "label": "Decoder"
+  },
+  {
+   "default": "0",
+   "fieldname": "decoder_calculation",
+   "fieldtype": "Currency",
+   "label": "IRD Cost",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fetch_from": "program_code.decoder_rate",
+   "fetch_if_empty": 1,
+   "fieldname": "decoder_rate",
+   "fieldtype": "Currency",
+   "label": "IRD Allocation",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_21",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "decoder_max_bill_div",
+   "fieldtype": "Int",
+   "label": "Rec Period"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "1",
+   "fetch_from": "program_code.decoder_max_bill_count",
+   "fetch_if_empty": 1,
+   "fieldname": "decoder_max_bill_count",
+   "fieldtype": "Int",
+   "label": "Rec Monitoring"
+  },
+  {
+   "depends_on": "eval:doc.card_allocation_active",
+   "fieldname": "card_section",
+   "fieldtype": "Section Break",
+   "label": "Card"
+  },
+  {
+   "default": "0",
+   "fieldname": "card_calculation",
+   "fieldtype": "Currency",
+   "label": "Card",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fetch_from": "program_code.card_rate",
+   "fetch_if_empty": 1,
+   "fieldname": "card_rate",
+   "fieldtype": "Currency",
+   "label": "Card Allocation",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_23",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "card_max_bill_divisor",
+   "fieldtype": "Int",
+   "label": "Rec Period",
+   "precision": "0"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "1",
+   "fetch_from": "program_code.card_max_bill_count",
+   "fetch_if_empty": 1,
+   "fieldname": "card_max_bill_count",
+   "fieldtype": "Int",
+   "label": "Rec Monitoring"
+  },
+  {
+   "depends_on": "eval:doc.promo_allocation_active",
+   "fieldname": "promo_section",
+   "fieldtype": "Section Break",
+   "label": "Promo"
+  },
+  {
+   "default": "0",
+   "fieldname": "promo_calculation",
+   "fieldtype": "Currency",
+   "label": "Promo",
+   "options": "PSOF:psof:contract_currency"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fetch_from": "program_code.promo_rate",
+   "fetch_if_empty": 1,
+   "fieldname": "promo_rate",
+   "fieldtype": "Currency",
+   "label": "Promo Allocation",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_15",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "promo_max_bill_divisor",
+   "fieldtype": "Int",
+   "label": "Rec Period",
+   "precision": "0"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "1",
+   "fetch_from": "program_code.promo_max_bill_count",
+   "fetch_if_empty": 1,
+   "fieldname": "promo_max_bill_count",
+   "fieldtype": "Int",
+   "label": "Rec Monitoring"
+  },
+  {
+   "depends_on": "eval:doc.freight_allocation_active",
+   "fieldname": "freight_section",
+   "fieldtype": "Section Break",
+   "label": "Freight"
+  },
+  {
+   "default": "0",
+   "fieldname": "freight_calculation",
+   "fieldtype": "Currency",
+   "label": "Freight",
+   "options": "PSOF:psof:contract_currency",
+   "precision": "0"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fetch_from": "program_code.freight_rate",
+   "fetch_if_empty": 1,
+   "fieldname": "freight_rate",
+   "fieldtype": "Currency",
+   "label": "Freight Allocation",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_19",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "freight_max_bill_divisor",
+   "fieldtype": "Int",
+   "label": "Rec Period",
+   "precision": "0"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "1",
+   "fetch_from": "program_code.freight_max_bill_count",
+   "fetch_if_empty": 1,
+   "fieldname": "freight_max_bill_count",
+   "fieldtype": "Int",
+   "label": "Rec Monitoring"
+  },
+  {
+   "fieldname": "sub_total_section",
+   "fieldtype": "Section Break",
+   "label": "Sub Total"
+  },
+  {
+   "default": "0",
+   "fieldname": "renewal",
+   "fieldtype": "Check",
+   "label": "Renewal"
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "VAT",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "program_status",
+   "fieldtype": "Small Text",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "decoder_difference",
+   "fieldtype": "Currency",
+   "label": "IRD Difference",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "decoder_condition",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Condition",
+   "length": 2,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "card_difference",
+   "fieldtype": "Currency",
+   "label": "Card Difference",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "card_condition",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Conditon",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "promo_difference",
+   "fieldtype": "Currency",
+   "label": "Promo Difference",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "promo_condition",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Conditon",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "freight_difference",
+   "fieldtype": "Currency",
+   "label": "Freight Difference",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "freight_condition",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Condition",
+   "read_only": 1
+  },
+  {
+   "fieldname": "psof",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "PSOF",
+   "options": "PSOF"
+  },
+  {
+   "default": "0",
+   "fieldname": "bill_generated",
+   "fieldtype": "Check",
+   "label": "Bill Generated",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Customer"
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subscription_contract",
+   "fieldtype": "Link",
+   "label": "Subscription Contract",
+   "options": "Subscription Contract",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "subscription_contract.currency",
+   "fieldname": "subscription_currency",
+   "fieldtype": "Link",
+   "label": "Subscription Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "options": "PSOF:psof:contract_currency",
+   "precision": "2"
+  },
+  {
+   "fieldname": "difference_grand_total",
+   "fieldtype": "Currency",
+   "label": "Difference (Grand Total)",
+   "options": "PSOF:psof:contract_currency",
+   "precision": "2"
+  },
+  {
+   "fieldname": "less_of_vat_original",
+   "fieldtype": "Currency",
+   "label": "MSF Less of Vat Original",
+   "length": 2,
+   "options": "PSOF:psof:contract_currency",
+   "precision": "2"
+  }
+ ],
+ "istable": 1,
+ "modified": "2021-10-04 15:31:46.103445",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "PSOF Program",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

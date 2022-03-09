@@ -1,0 +1,122 @@
+{
+ "creation": "2020-10-06 13:30:16.072116",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "active",
+  "program_code",
+  "program_name",
+  "interval",
+  "count",
+  "rate",
+  "max_bill_count",
+  "rates_section",
+  "rate_per_sub",
+  "decoder_rate",
+  "promo_rate",
+  "freight_rate",
+  "card_rate"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "fieldname": "interval",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Interval",
+   "options": "Day\nWeek\nMonth\nYear"
+  },
+  {
+   "columns": 1,
+   "fieldname": "count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Count"
+  },
+  {
+   "columns": 1,
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate",
+   "options": "currency"
+  },
+  {
+   "columns": 1,
+   "fieldname": "max_bill_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Max Bill Count"
+  },
+  {
+   "default": "0",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "program_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Program Code",
+   "options": "Subscription Program"
+  },
+  {
+   "columns": 1,
+   "fetch_from": "program_code.program_name",
+   "fieldname": "program_name",
+   "fieldtype": "Data",
+   "label": "Program Name"
+  },
+  {
+   "fieldname": "rates_section",
+   "fieldtype": "Section Break",
+   "label": "Rates"
+  },
+  {
+   "fetch_from": "program_code.rate_per_sub",
+   "fieldname": "rate_per_sub",
+   "fieldtype": "Currency",
+   "label": "Rate per Sub"
+  },
+  {
+   "fetch_from": "program_code.decoder_rate",
+   "fieldname": "decoder_rate",
+   "fieldtype": "Currency",
+   "label": "Decoder Rate"
+  },
+  {
+   "fetch_from": "program_code.promo_rate",
+   "fieldname": "promo_rate",
+   "fieldtype": "Currency",
+   "label": "Promo Rate"
+  },
+  {
+   "fetch_from": "program_code.freight_rate",
+   "fieldname": "freight_rate",
+   "fieldtype": "Currency",
+   "label": "Freight Rate"
+  },
+  {
+   "fetch_from": "program_code.card_rate",
+   "fieldname": "card_rate",
+   "fieldtype": "Currency",
+   "label": "Card Rate"
+  }
+ ],
+ "istable": 1,
+ "modified": "2020-10-17 21:06:16.553653",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Subscription Package Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

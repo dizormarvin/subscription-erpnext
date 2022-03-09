@@ -1,0 +1,251 @@
+// Copyright (c) 2020, ossphin and contributors
+// For license information, please see license.txt
+{% include 'erpnext/selling/sales_common.js' %}
+
+frappe.ui.form.on('Subscription Contract',  {
+//	 refresh: function(frm) {
+//
+//	 },
+	refresh: function(frm) {
+	if(frm.doc.docstatus === 1){
+		frm.add_custom_button(__('Billing Request'), function(){
+		        frappe.msgprint(frm.doc.email);
+			    }, __("Create"));
+
+		frm.add_custom_button(__('Contract Renewal'), function(){
+			cur_frm.call('renew_contract','',function(r){}
+				);
+                            }, __("Create"));
+
+	}
+	if(frm.doc.docstatus === 0) {
+                frm.add_custom_button(__('Get Items'), function(){
+                        cur_frm.call('get_items','',function(r){}
+				);
+                            }, __("Utilities"));
+		}
+	}
+});
+
+// Update Amounts
+var update_amounts = function(frm, cdt, cdn) {
+	var cur_doc = locals[cdt][cdn];
+	var total = 0;
+	total = total + cur_doc.subscription_fee;
+
+	if (cur_doc.decoder_allocation_active === 1) {
+		total = total - cur_doc.decoder_rate;
+		msgprint("I am here" + total);
+		} 
+
+	if (cur_doc.card_allocation_active === 1) { 
+                total = total - cur_doc.card_rate;
+                } 
+
+        if (cur_doc.promo_allocation_active === 1) { 
+                total = total - cur_doc.promo_rate;
+                } 
+
+        if (cur_doc.freight_allocation_active === 1) { 
+                total = total - cur_doc.allocation_rate;
+                } 
+
+	msgprint("I am here" + total);
+
+	cur_doc.subscription_rate = total;
+	cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);
+        frm.refresh_fields();
+}
+
+// Active Checkbox
+frappe.ui.form.on("Subscription Contract Items", "decoder_allocation_active", function(frm, cdt, cdn) 
+	var cur_doc = locals[cdt][cdn];
+	if (cur_doc.decoder_allocation_active === 0){
+		cur_doc.decoder_max_bill_count = 0;
+		cur_doc.set_df_property("decoder_section", "hidden", 1);
+		update_amounts(frm, cdt, cdn);
+		} 
+	frm.refresh_fields();
+	update_amounts(frm, cdt, cdn);
+	frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "subscription_fee", function(frm, cdt, cdn) {
+	var cur_doc = locals[cdt][cdn];
+	update_amounts(frm, cdt, cdn);
+});
+
+
+frappe.ui.form.on("Subscription Contract Items", "decoder_rate", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+     	cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "promo_rate", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+    	cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "freight_rate", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "card_rate", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+        frm.refresh_fields();
+});
+
+
+/*  Decoder */
+frappe.ui.form.on("Subscription Contract Items", "decoder_calculation", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.decoder_rate = cur_doc.decoder_calculation/cur_doc.decoder_max_bill_div
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "decoder_max_bill_div", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.decoder_rate = cur_doc.decoder_calculation/cur_doc.decoder_max_bill_div
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "decoder_calculation", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+        cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "decoder_max_bill_div", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+        cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);
+        frm.refresh_fields();
+});
+
+/*  Card */
+frappe.ui.form.on("Subscription Contract Items", "card_calculation", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.card_rate = cur_doc.card_calculation/cur_doc.card_max_bill_divisor
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "card_max_bill_divisor", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.card_rate = cur_doc.card_calculation/cur_doc.card_max_bill_divisor
+        frm.refresh_fields();
+});
+
+
+frappe.ui.form.on("Subscription Contract Items", "card_calculation", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+        cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "card_max_bill_divisor", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+     	cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);   
+        frm.refresh_fields();
+});
+
+/*  Promo */
+frappe.ui.form.on("Subscription Contract Items", "promo_calculation", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.promo_rate = cur_doc.promo_calculation/cur_doc.promo_max_bill_divisor
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "promo_max_bill_divisor", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.promo_rate = cur_doc.promo_calculation/cur_doc.promo_max_bill_divisor
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "promo_calculation", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+     	cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);   
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "promo_max_bill_divisor", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+     	cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);   
+        frm.refresh_fields();
+});
+
+/* Freight */
+
+frappe.ui.form.on("Subscription Contract Items", "freight_calculation", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.freight_rate = cur_doc.freight_calculation/cur_doc.freight_max_bill_divisor
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "freight_max_bill_divisor", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.freight_rate = cur_doc.freight_calculation/cur_doc.freight_max_bill_divisor
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "freight_calculation", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+     	cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);   
+        frm.refresh_fields();
+});
+
+frappe.ui.form.on("Subscription Contract Items", "freight_max_bill_divisor", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+   		cur_doc.subscription_rate = cur_doc.subscription_fee - cur_doc.decoder_rate - cur_doc.promo_rate - cur_doc.freight_rate - cur_doc.card_rate;
+      	cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub); 
+        frm.refresh_fields();
+});
+/*
+
+
+frappe.ui.form.on("Subscription Contract Items", "subscription_rate", function(frm, cdt, cdn) {
+	var cur_doc = locals[cdt][cdn];
+	cur_doc.no_of_subs = Math.round((cur_doc.subscription_rate/1.12)/cur_doc.rate_per_sub);
+	cur_doc.total = cur_doc.subscription_rate + cur_doc.decoder_rate + cur_doc.promo_rate + cur_doc.freight_rate + cur_doc.card_rate;
+	frm.refresh_fields();
+});
+
+
+frappe.ui.form.on("Subscription Contract Items", "decoder_rate", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.total = cur_doc.subscription_rate + cur_doc.decoder_rate + cur_doc.promo_rate + cur_doc.freight_rate + cur_doc.card_rate;
+        frm.refresh_fields();
+});
+
+
+frappe.ui.form.on("Subscription Contract Items", "promo_rate", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.total = cur_doc.subscription_rate + cur_doc.decoder_rate + cur_doc.promo_rate + cur_doc.freight_rate + cur_doc.card_rate;
+        frm.refresh_fields();
+});
+
+
+frappe.ui.form.on("Subscription Contract Items", "freight_rate", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.total = cur_doc.subscription_rate + cur_doc.decoder_rate + cur_doc.promo_rate + cur_doc.freight_rate + cur_doc.card_rate;
+        frm.refresh_fields();
+});
+
+
+frappe.ui.form.on("Subscription Contract Items", "card_rate", function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.total = cur_doc.subscription_rate + cur_doc.decoder_rate + cur_doc.promo_rate + cur_doc.freight_rate + cur_doc.card_rate;
+        frm.refresh_fields();
+});
+
+*/

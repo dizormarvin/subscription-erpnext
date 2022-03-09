@@ -1,0 +1,193 @@
+{
+ "autoname": "SC.######",
+ "creation": "2020-09-24 09:20:36.103453",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "contract_number",
+  "customer",
+  "customer_name",
+  "sales_partner",
+  "description",
+  "column_break_5",
+  "contract_date",
+  "start_date",
+  "expiry_date",
+  "bill_expired_until_renewed",
+  "escalation",
+  "currency",
+  "renewal_contract",
+  "items_sec",
+  "programs_section",
+  "items",
+  "sec",
+  "total",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Cable System",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "client.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Customer Name"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "contract_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Contract Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Expiry Date",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "bill_expired_until_renewed",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Bill Expired until Renewed"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "renewal_contract",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Renewal Contract",
+   "options": "Subscription Contract",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Subscription Contract Items"
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_number",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Contract Number",
+   "unique": 1
+  },
+  {
+   "default": "USD",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "escalation",
+   "fieldtype": "Percent",
+   "hidden": 1,
+   "label": "Escalation"
+  },
+  {
+   "fieldname": "items_sec",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "sec",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Subscription Contract",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.default_sales_partner",
+   "fieldname": "sales_partner",
+   "fieldtype": "Link",
+   "label": "Account Manager",
+   "options": "Sales Partner"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "programs_section",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Programs"
+  }
+ ],
+ "is_submittable": 1,
+ "modified": "2021-09-23 10:08:45.259193",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Subscription Contract",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Subscription Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "customer",
+ "track_changes": 1
+}

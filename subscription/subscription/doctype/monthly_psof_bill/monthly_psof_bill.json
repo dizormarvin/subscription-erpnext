@@ -1,0 +1,402 @@
+{
+ "creation": "2021-06-22 10:07:20.620859",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "customer",
+  "customer_name",
+  "monthly_psof",
+  "psof",
+  "bill_no",
+  "account_manager",
+  "assistant",
+  "column_break_3",
+  "subscription_period",
+  "billing_date",
+  "date",
+  "exchange_rate",
+  "currency",
+  "section_break_6",
+  "total_msf",
+  "total_msf_vat_inc",
+  "total_msf_vat_ex",
+  "total_vat",
+  "column_break_10",
+  "total_decoder_rate",
+  "total_promo_rate",
+  "total_freight_rate",
+  "total_card_rate",
+  "totals_in_usd_section",
+  "usd_msf",
+  "usd_msf_lv_inc",
+  "usd_msf_lv_ex",
+  "computed_vat_ex",
+  "usd_msf_lv_diff",
+  "usd_msf_lv_total",
+  "usd_vat",
+  "column_break_31",
+  "computed_tamount",
+  "computed_tdiff",
+  "section_break_24",
+  "vat_incl_column",
+  "usd_decoder",
+  "usd_promo",
+  "usd_freight",
+  "usd_card",
+  "total_vat_inc",
+  "column_break_19",
+  "usd_decoder_ex",
+  "usd_promo_ex",
+  "usd_freight_ex",
+  "usd_card_ex",
+  "total_vat_ex",
+  "allocation_vat_column",
+  "decoder_vat",
+  "promo_vat",
+  "freight_vat",
+  "card_vat",
+  "total_vat_diff"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer Code",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bill_no",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Bill No",
+   "options": "Subscription Bill",
+   "read_only": 1
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "psof.account_manager",
+   "fieldname": "account_manager",
+   "fieldtype": "Link",
+   "label": "Account Manager",
+   "options": "Sales Partner"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_6",
+   "fieldtype": "Section Break",
+   "label": "Totals in USD"
+  },
+  {
+   "fieldname": "total_vat",
+   "fieldtype": "Currency",
+   "label": "Total VAT",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_decoder_rate",
+   "fieldtype": "Currency",
+   "label": "Total Decoder Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_promo_rate",
+   "fieldtype": "Currency",
+   "label": "Total Promo Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_freight_rate",
+   "fieldtype": "Currency",
+   "label": "Total Freight Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_card_rate",
+   "fieldtype": "Currency",
+   "label": "Total Card Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_msf",
+   "fieldtype": "Currency",
+   "label": "Total MSF",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "totals_in_usd_section",
+   "fieldtype": "Section Break",
+   "label": "Totals in PHP",
+   "options": "currency"
+  },
+  {
+   "fieldname": "usd_msf",
+   "fieldtype": "Currency",
+   "label": "Total MSF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_vat",
+   "fieldtype": "Currency",
+   "label": "Total VAT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_19",
+   "fieldtype": "Column Break",
+   "label": "VAT(Exc.)"
+  },
+  {
+   "fieldname": "usd_decoder",
+   "fieldtype": "Currency",
+   "label": "Total Decoder Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_promo",
+   "fieldtype": "Currency",
+   "label": "Total Promo Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_freight",
+   "fieldtype": "Currency",
+   "label": "Total Freight Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_card",
+   "fieldtype": "Currency",
+   "label": "Total Card Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "monthly_psof",
+   "fieldtype": "Link",
+   "label": "Monthly PSOF No",
+   "options": "Monthly PSOF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "psof",
+   "fieldtype": "Link",
+   "label": "From PSOF No",
+   "options": "PSOF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "exchange_rate",
+   "fieldtype": "Currency",
+   "label": "Exchange Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_incl_column",
+   "fieldtype": "Column Break",
+   "label": "VAT (Inc.)"
+  },
+  {
+   "fieldname": "section_break_24",
+   "fieldtype": "Section Break",
+   "label": "Rates Total"
+  },
+  {
+   "fieldname": "usd_decoder_ex",
+   "fieldtype": "Currency",
+   "label": "Total Decoder Rate",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_promo_ex",
+   "fieldtype": "Currency",
+   "label": "Total Promo Rate",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_freight_ex",
+   "fieldtype": "Currency",
+   "label": "Total Freight Rate",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_card_ex",
+   "fieldtype": "Currency",
+   "label": "Total Card Rate",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_msf_lv_diff",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "MSF Difference"
+  },
+  {
+   "fieldname": "allocation_vat_column",
+   "fieldtype": "Column Break",
+   "label": "Allocation VAT"
+  },
+  {
+   "fieldname": "decoder_vat",
+   "fieldtype": "Currency",
+   "label": "Total Decoder VAT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "promo_vat",
+   "fieldtype": "Currency",
+   "label": "Total Promo VAT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "freight_vat",
+   "fieldtype": "Currency",
+   "label": "Total Freight VAT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "card_vat",
+   "fieldtype": "Currency",
+   "label": "Total Card VAT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_msf_lv_total",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "MSF VAT Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_msf_vat_inc",
+   "fieldtype": "Currency",
+   "label": "Total MSF VAT (Inc.)",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_msf_vat_ex",
+   "fieldtype": "Currency",
+   "label": "Total MSF VAT (Exc.)",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_msf_lv_inc",
+   "fieldtype": "Currency",
+   "label": "Total MSF VAT (Inc.)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usd_msf_lv_ex",
+   "fieldtype": "Currency",
+   "label": "Total MSF VAT (Exc.)",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "subscription_period",
+   "fieldtype": "Link",
+   "label": "Subscription Period",
+   "options": "Subscription Period",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "subscription_period.end_date",
+   "fieldname": "billing_date",
+   "fieldtype": "Date",
+   "label": "Billing Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.billing_assistant",
+   "fieldname": "assistant",
+   "fieldtype": "Link",
+   "label": "Assistant",
+   "options": "Billing Assistant"
+  },
+  {
+   "fieldname": "column_break_31",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "computed_tamount",
+   "fieldtype": "Currency",
+   "label": "Total Computed Amount"
+  },
+  {
+   "fieldname": "computed_tdiff",
+   "fieldtype": "Currency",
+   "label": "Total Computed Difference"
+  },
+  {
+   "fieldname": "computed_vat_ex",
+   "fieldtype": "Currency",
+   "label": "Computed Total MSF VAT (Ex)"
+  },
+  {
+   "fieldname": "total_vat_inc",
+   "fieldtype": "Currency",
+   "label": "Total VAT (Inc.)"
+  },
+  {
+   "fieldname": "total_vat_ex",
+   "fieldtype": "Currency",
+   "label": "Total VAT (Exc.)"
+  },
+  {
+   "fieldname": "total_vat_diff",
+   "fieldtype": "Currency",
+   "label": "Total Vat"
+  }
+ ],
+ "istable": 1,
+ "modified": "2022-02-02 09:53:18.200903",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Monthly PSOF Bill",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

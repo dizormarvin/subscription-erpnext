@@ -1,0 +1,155 @@
+{
+ "creation": "2021-02-26 17:26:21.762050",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "active",
+  "psof",
+  "program",
+  "date_activation_de_activation",
+  "program_name",
+  "psof_program",
+  "action",
+  "activation_team_section",
+  "confirmation_date",
+  "serial_no",
+  "card_serial_no",
+  "cam_serial_no",
+  "remarks",
+  "technical_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "program",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Program",
+   "options": "Subscription Program",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "action",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Action",
+   "options": "\nActivate\nDeactivate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "program_name",
+   "fieldtype": "Data",
+   "label": "Program Name",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "psof",
+   "fieldtype": "Link",
+   "label": "PSOF",
+   "options": "PSOF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "psof_program",
+   "fieldtype": "Link",
+   "label": "PSOF Program",
+   "options": "PSOF Program",
+   "read_only": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "label": "IRD Serial No ",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "confirmation_date",
+   "fieldtype": "Date",
+   "label": "Confirmation Date"
+  },
+  {
+   "columns": 2,
+   "fieldname": "date_activation_de_activation",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date Activation/De-Activation",
+   "reqd": 1
+  },
+  {
+   "fieldname": "card_serial_no",
+   "fieldtype": "Link",
+   "label": "CARD Serial No",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "cam_serial_no",
+   "fieldtype": "Link",
+   "label": "CAM Serial No",
+   "options": "Serial No"
+  },
+  {
+   "collapsible_depends_on": "eval: doc.status = 'Approved'",
+   "fieldname": "activation_team_section",
+   "fieldtype": "Section Break",
+   "label": "Activation Team"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Long Text",
+   "label": "Remarks",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval: doc.workflow_state === \"For Approval (Activation)\";",
+   "fieldname": "technical_remarks",
+   "fieldtype": "Long Text",
+   "label": "Technical Remarks"
+  }
+ ],
+ "modified": "2021-12-10 16:26:06.962413",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Program Activation Item",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

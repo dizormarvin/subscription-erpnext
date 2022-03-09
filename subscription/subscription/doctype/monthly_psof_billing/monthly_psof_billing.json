@@ -1,0 +1,100 @@
+{
+ "autoname": "-{subscription_period}",
+ "creation": "2021-09-04 21:47:53.874501",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "monthly_psof",
+  "status",
+  "posting_date",
+  "column_break_3",
+  "subscription_period",
+  "exchange_rate",
+  "section_break_6",
+  "billings",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "monthly_psof",
+   "fieldtype": "Link",
+   "label": "Monthly PSOF",
+   "options": "Monthly PSOF"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
+  },
+  {
+   "fetch_from": "subscription_period.exchange_rate",
+   "fieldname": "exchange_rate",
+   "fieldtype": "Currency",
+   "label": "Exchange Rate",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "billings",
+   "fieldtype": "Table",
+   "label": "Bills",
+   "options": "Monthly PSOF Bill"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "monthly_psof.subscription_period",
+   "fieldname": "subscription_period",
+   "fieldtype": "Link",
+   "label": "Subscription Period",
+   "options": "Subscription Period",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Monthly PSOF Billing",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "status"
+  }
+ ],
+ "is_submittable": 1,
+ "modified": "2022-01-04 11:34:25.164363",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Monthly PSOF Billing",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

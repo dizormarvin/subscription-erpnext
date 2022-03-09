@@ -1,0 +1,302 @@
+// Copyright (c) 2020, ossphin and contributors
+// For license information, please see license.txt
+
+// PSOF
+frappe.ui.form.on('PSOF', {
+    // refresh: function(frm, cdt, cdn) {
+    // },
+
+    validate: function(frm, cdt, cdn) {
+        let cur_doc = locals[cdt][cdn];
+        const program_list = new Array();
+        console.log('validate')
+
+        if(cur_doc.programs) {
+            for (let i = 0; i < cur_doc.programs.length; i++) {
+                program_list.push(cur_doc.programs[i].subscription_program)
+            };
+            let checker = new Set(program_list)
+            if(program_list.length !== checker.size) {
+                frappe.throw(__('Duplicate Entries Found'));
+            }
+        }
+        cur_frm.refresh_fields(frm);
+    },
+
+    onload: function(frm) {
+        update_program(frm);
+        cur_frm.refresh_fields(frm);
+    },
+
+    programs: function(frm) {
+        update_program(frm);
+        cur_frm.refresh_fields(frm);
+    },
+
+    before_save: function(frm) {
+        cur_frm.clear_table ("bill_view");
+        cur_frm.refresh_fields ();
+    },
+
+    after_save: function (frm) {
+        cur_frm.call('update_bills', function (r){});
+        cur_frm.refresh_fields(frm)
+    },
+    subscription_program: function(frm) {
+        cur_frm.clear_table("bill_view");
+        cur_frm.call ('billview', function(r){});
+        cur_frm.refresh_fields(frm);
+    },
+    generate: function (frm) {
+        cur_frm.clear_table("bill_view");
+        cur_frm.call('create_bill', function(r){});
+    }
+});
+
+// function to get difference caused by decimal places
+function diff (period, cost, allocated_rate) {
+    let rate = (cost - (period - 1) * (cost / period)).toFixed (2)
+    rate = cost - ((period - 1) * rate)
+    return (rate - allocated_rate)
+}
+
+// to check if computation is over or under
+function cond (dif) {
+    let condition = ""
+
+    if(dif >= 0) {
+        condition = "OVER"
+    } else {
+        condition = "UNDER"
+    }
+    return condition
+}
+
+var update_program = function(frm){
+    frm.set_query ("subscription_program", function() {
+        return {
+            "query": "subscription.subscription.doctype.psof.psof.get_programs",
+            "filters": {
+                'dname': frm.docname
+            }
+        };
+    });
+}
+var truncateByDecimalPlace = (value, numDecimalPlaces) =>
+    Math.trunc(value * Math.pow(10, numDecimalPlaces)) / Math.pow(10, numDecimalPlaces)
+
+
+frappe.ui.form.on("PSOF Program Bill View", {
+    bill_view_update: function(frm, cdt, cdn) {
+        var d = locals[cdt][cdn];
+        msgprint(d.psof_program_bill);
+    }
+});
+
+// Update Amounts
+var update_amounts = function(frm, cdt, cdn) {
+    var cur_doc = locals[cdt][cdn];
+    var total = 0.0;
+    total = total + cur_doc.subscription_fee;
+
+    if(cur_doc.decoder_allocation_active === 1) {
+        total = total - cur_doc.decoder_rate;
+    }
+
+    if(cur_doc.card_allocation_active === 1) {
+        total = total - cur_doc.card_rate;
+    }
+
+    if(cur_doc.promo_allocation_active === 1) {
+        total = total - cur_doc.promo_rate;
+    }
+
+    if(cur_doc.freight_allocation_active === 1) {
+        total = total - cur_doc.freight_rate;
+    }
+
+    //Difference due to decimal places
+    cur_doc.decoder_difference = diff(cur_doc.decoder_max_bill_div, cur_doc.decoder_calculation, cur_doc.decoder_rate);
+    cur_doc.card_difference = diff(cur_doc.card_max_bill_divisor, cur_doc.card_calculation, cur_doc.card_rate);
+    cur_doc.promo_difference = diff(cur_doc.promo_max_bill_divisor, cur_doc.promo_calculation, cur_doc.promo_rate);
+    cur_doc.freight_difference = diff(cur_doc.freight_max_bill_divisor, cur_doc.freight_calculation,
+        cur_doc.freight_rate);
+
+    //Conditions
+    cur_doc.decoder_condition = cond(cur_doc.decoder_difference)
+    cur_doc.card_condition = cond(cur_doc.card_difference)
+    cur_doc.promo_condition = cond(cur_doc.promo_difference)
+    cur_doc.freight_condition = cond(cur_doc.freight_difference)
+
+    // RATES COMPUTATION
+    cur_doc.subscription_rate = truncateByDecimalPlace((total / 1.12), 2); // MSF Less of VAT
+    cur_doc.no_of_subs = Math.trunc(cur_doc.subscription_rate / cur_doc.rate_per_sub); // SUBS
+    cur_doc.vat_amount = cur_doc.subscription_rate * 0.12 // VAT
+    frm.refresh_fields();
+
+};
+
+frappe.ui.form.on("PSOF Program", {
+
+    //Active Checkbox
+    decoder_allocation_active: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        if(cur_doc.decoder_allocation_active === 1) {
+        } else {
+            cur_doc.decoder_max_bill_count = 0;
+        }
+        update_amounts (frm, cdt, cdn);
+        frm.refresh_fields ();
+    },
+
+    promo_allocation_active: function (frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        if(cur_doc.promo_allocation_active === 1) {
+        } else {
+            cur_doc.promo_max_bill_count = 0;
+        }
+        update_amounts (frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+
+    freight_allocation_active: function (frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        if(cur_doc.freight_allocation_active === 1) {
+        } else {
+            cur_doc.freight_max_bill_count = 0;
+        }
+        update_amounts (frm, cdt, cdn);
+        frm.refresh_fields ();
+    },
+
+    card_allocation_active: function (frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        if(cur_doc.card_allocation_active === 1) {
+        } else {
+            cur_doc.card_max_bill_count = 0;
+        }
+        update_amounts (frm, cdt, cdn);
+        frm.refresh_fields ();
+    },
+
+    renewal: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        if(cur_doc.renewal === 1) {
+            cur_doc.active = 1
+        } else {
+            cur_doc.active = 0
+        }
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+
+    subscription_program: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        if(cur_doc.program_name !== null) {
+            var date = new Date();
+            var firstDay = frappe.format(new Date(date.getFullYear(), date.getMonth(), 1), {fieldType: ' Date'});
+            frappe.db.get_value ('PSOF', cur_doc.parent, ['expiry_date']).then(r => {
+                let values = r.message;
+                cur_doc.start_date = firstDay;
+                cur_doc.end_date = values.expiry_date;
+                if(cur_doc.start_date !== cur_doc.end_date) {
+                    cur_doc.program_status = "<b>Status:<b/> Active"
+                } else {
+                    cur_doc.program_status = "<b>Status:<b/> Expired"
+                }
+                frm.refresh_fields ();
+            });
+        } else {
+            cur_doc.start_date = null
+        }
+    },
+
+    //Rates
+    subscription_fee: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        update_amounts(frm, cdt, cdn);
+    },
+    decoder_rate: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        update_amounts(frm, cdt, cdn);
+    },
+    promo_rate: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        update_amounts(frm, cdt, cdn);
+    },
+    freight_rate: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        update_amounts(frm, cdt, cdn);
+    },
+    card_rate: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        update_amounts(frm, cdt, cdn);
+    },
+    decoder_difference: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        update_amounts(frm, cdt, cdn);
+    },
+
+    /*  Decoder */
+    decoder_calculation: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.decoder_rate = cur_doc.decoder_calculation / cur_doc.decoder_max_bill_div;
+        cur_doc.decoder_rate = truncateByDecimalPlace(cur_doc.decoder_rate, 2)
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+
+    decoder_max_bill_div: function (frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.decoder_rate = cur_doc.decoder_calculation / cur_doc.decoder_max_bill_div;
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+
+    /*  Card */
+    card_calculation: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.card_rate = cur_doc.card_calculation / cur_doc.card_max_bill_divisor;
+        cur_doc.card_rate = truncateByDecimalPlace(cur_doc.card_rate, 2)
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+
+    card_max_bill_divisor: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.card_rate = cur_doc.card_calculation / cur_doc.card_max_bill_divisor;
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+
+    /*  Promo */
+    promo_calculation: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.promo_rate = cur_doc.promo_calculation / cur_doc.promo_max_bill_divisor;
+        cur_doc.promo_rate = truncateByDecimalPlace (cur_doc.promo_rate, 2)
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+
+    promo_max_bill_divisor: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.promo_rate = cur_doc.promo_calculation / cur_doc.promo_max_bill_divisor;
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+    /* Freight */
+    freight_calculation: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.freight_rate = cur_doc.freight_calculation / cur_doc.freight_max_bill_divisor;
+        cur_doc.freight_rate = truncateByDecimalPlace (cur_doc.freight_rate, 2)
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+
+    freight_max_bill_divisor: function(frm, cdt, cdn) {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.freight_rate = cur_doc.freight_calculation / cur_doc.freight_max_bill_divisor;
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+});

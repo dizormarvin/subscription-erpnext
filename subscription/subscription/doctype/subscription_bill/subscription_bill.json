@@ -1,0 +1,124 @@
+{
+ "autoname": "naming_series:",
+ "creation": "2021-06-19 09:42:38.331208",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "bill_date",
+  "customer",
+  "account_manager",
+  "assistant",
+  "column_break_4",
+  "due_date",
+  "subscription_period",
+  "journal_reference",
+  "exchange_rate",
+  "section_break_8",
+  "items",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "YYYY.MM.####"
+  },
+  {
+   "fieldname": "bill_date",
+   "fieldtype": "Date",
+   "label": "Bill Date"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
+  },
+  {
+   "fieldname": "subscription_period",
+   "fieldtype": "Link",
+   "label": "Subscription Period",
+   "options": "Subscription Period"
+  },
+  {
+   "fieldname": "journal_reference",
+   "fieldtype": "Link",
+   "label": "Journal Reference",
+   "options": "Journal Entry"
+  },
+  {
+   "fieldname": "section_break_8",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Subscription Bill Item",
+   "options": "Subscription Bill Item"
+  },
+  {
+   "fetch_from": "subscription_period.exchange_rate",
+   "fieldname": "exchange_rate",
+   "fieldtype": "Float",
+   "label": "Exchange Rate",
+   "precision": "4"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Subscription Bill",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "account_manager",
+   "fieldtype": "Link",
+   "label": "Account Manager",
+   "options": "Sales Partner"
+  },
+  {
+   "fieldname": "assistant",
+   "fieldtype": "Link",
+   "label": "Assistant",
+   "options": "Billing Assistant"
+  }
+ ],
+ "is_submittable": 1,
+ "modified": "2022-01-11 11:34:34.724457",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Subscription Bill",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
