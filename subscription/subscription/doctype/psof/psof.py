@@ -6,10 +6,38 @@ from __future__ import unicode_literals
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt, getdate, add_months, add_days, get_last_day, fmt_money, nowdate
+from frappe.utils import flt, getdate, add_months, add_days, get_last_day, fmt_money, nowdate, format_date, get_date_str, get_first_day
 
 
 class PSOF(Document):
+
+    def validate(self):
+        if self.subscription_contract:
+            contract = frappe.get_doc("Subscription Contract", self.subscription_contract)
+            contract.db_set("is_used", 1)
+        self.adjust_program_parent()
+        self.calculate_total()
+
+    def adjust_program_dates(self, n_end_date, n_contract):
+        for program in self.get("programs"):
+            frappe.db.set_value("PSOF Program", program.name, {
+                "end_date": n_end_date,
+                "subscription_contract": n_contract
+            })
+
+    def adjust_program_parent(self):
+        for program in self.get("programs"):
+            frappe.db.set_value("PSOF Program", program.name, "parent", self.name)
+
+    def calculate_total(self):
+        self.db_set("monthly_subs_fee_total", sum(program.get("subscription_fee") for program in self.get("programs")))
+
+    def autoname(self):
+        prefix = "SD" if self.superseded and self.bill_until_renewed else "D" if self.bill_until_renewed else "S"
+        if self.superseded or self.bill_until_renewed:
+            old_psof = frappe.get_doc("Subscription Contract", self.subscription_contract)
+            name = old_psof.get("psof").split("-")
+            self.name = f"{name[0]}-{name[1]}-{prefix}{int(name[2][1:]) + 1}" if len(name) > 2 else f"{name[0]}-{name[1]}-{prefix}{1}"
 
     def validate_bills(self, bill):
         if frappe.db.exists({
@@ -25,12 +53,12 @@ class PSOF(Document):
     @frappe.whitelist()
     def create_bill(self):
         progs = frappe.db.sql("""SELECT * FROM `tabPSOF Program` WHERE parent = %s AND subscription_program = %s""",
-                               (self.name, self.subscription_program), as_dict=1)
+                              (self.name, self.subscription_program), as_dict=1)
 
         # get data from server
         for i in progs:
             start = i.start_date
-            end = i.end_date
+            end = get_last_day(i.start_date) if self.bill_until_renewed else i.end_date
             decoder_count = 0
             card_count = 0
             promo_count = 0
@@ -108,11 +136,10 @@ class PSOF(Document):
                 promo_count = promo_count + 1
                 freight_count = freight_count + 1
 
-
-
         # db containing data from PSOF
         view = frappe.db.sql(
-            """SELECT * FROM `tabPSOF Program Bill` WHERE psof = %s AND subscription_program = %s ORDER BY date_from;""",(self.name, self.subscription_program), as_dict=1)
+            """SELECT * FROM `tabPSOF Program Bill` WHERE psof = %s AND subscription_program = %s ORDER BY date_from;""",
+            (self.name, self.subscription_program), as_dict=1)
 
         # send data to client
         for i in view:
@@ -135,12 +162,13 @@ class PSOF(Document):
 
     @frappe.whitelist()
     def update_bills(self):
-        newbills = self.bill_view
-
-        for i in newbills:
-            doc = frappe.get_doc('PSOF Program Bill', i.psof_program_bill)
-            doc.name = i.psof_program_bill
+        for i in self.get('bill_view'):
+            if frappe.db.exists('PSOF Program Bill', i.psof_program_bill):
+                doc = frappe.get_doc('PSOF Program Bill', i.psof_program_bill)
+            else:
+                doc = frappe.new_doc('PSOF Program Bill')
             doc.psof = self.name
+            doc.update_status(i.get("active"))
             doc.subscription_program = self.subscription_program
             doc.date_from = i.date_from
             doc.date_to = i.date_to
@@ -157,14 +185,14 @@ class PSOF(Document):
 
     @frappe.whitelist()
     def view_new_bill(self):
-        view = frappe.db.sql (
+        view = frappe.db.sql(
             """SELECT * FROM `tabPSOF Program Bill` WHERE psof = %s AND subscription_program = %s ORDER BY date_from;""",
             (self.name, self.subscription_program), as_dict=1)
 
         # send data to client
         for i in view:
             self.append('bill_view', {
-                "active": i.active,
+                "active": i.get("active"),
                 "subscription_program": i.subscription_program,
                 "date_from": i.date_from,
                 "date_to": i.date_to,
@@ -183,36 +211,24 @@ class PSOF(Document):
 
 @frappe.whitelist()
 def get_programs(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
-    programs = frappe.db.sql("""SELECT b.program_name FROM `tabPSOF Program` a, `tabSubscription Program` b, `tabPSOF` c
-        WHERE a.subscription_program = b.name AND a.parent = %s """,(filters["dname"]))
+    return frappe.db.get_list('PSOF Program', fields=['subscription_program', 'program_status'],
+                              filters={'parent': filters.get("dname")}, order_by='subscription_program asc', as_list=True)
 
-    return programs
+
+@frappe.whitelist()
+def get_contracts(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
+    return frappe.db.get_list('Subscription Contract',
+                              fields=['name', 'tax_category', 'sales_partner'],
+                              filters={'docstatus': 1}, order_by='creation desc', as_list=True)
 
 
 @frappe.whitelist()
 def delete_generated(parent, program, psof):
-
-    if frappe.db.exists({
-        "doctype": "PSOF Program Bill",
-        "subscription_program": program,
-        "psof": psof
-    }):
-        programs = frappe.db.sql(f"""
-            SELECT
-                name 
-            FROM 
-                `tabPSOF Program Bill` 
-            WHERE 
-                parent_bill = '{parent}'
-                AND
-                subscription_program = '{program}'
-                AND
-                psof = '{psof}'
-                """, as_dict=1)
-
+    programs = frappe.db.get_list('PSOF Program Bill', filters={
+        'subscription_program': program, 'psof': psof},
+                                  as_list=1)
+    if len(programs) > 0:
         for program in programs:
-            frappe.db.delete("PSOF Program Bill", program.name)
-
+            frappe.db.delete("PSOF Program Bill", program[0])
         return f"{len(programs)} generated bill/s has been deleted"
-    else:
-        return f"{program} has been removed from the list"
+    return f"{program} has been removed from the list"

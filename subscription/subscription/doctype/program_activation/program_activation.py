@@ -13,7 +13,11 @@ class ProgramActivation(Document):
 	def get_programs(self):
 		prog = frappe.db.sql(f"""
 		SELECT 
-			* 
+			subscription_program,
+			active,
+			parent,
+			name,
+			customer_name
 		FROM 
 			`tabPSOF Program` 
 		WHERE 
@@ -31,59 +35,9 @@ class ProgramActivation(Document):
 			})
 
 	@frappe.whitelist()
-	def activate(self):
-		for a in self.included_programs:
-			if a.action == "Activate":
-				frappe.db.set_value('PSOF Program', a.psof_program, {
-					'active': 1
-				})
-				frappe.db.set_value('PSOF Program', a.psof_program, {
-					'program_status': f'<b>Status</b>: Activated from {self.name} on {self.modified}'
-				})
-				frappe.db.set_value('PSOF Program', a.psof_program, {
-					'psof': self.psof
-				})
-
-				frappe.db.set_value('Program Activation Item', a.name, {
-					'active': 1
-				})
-
-				bills = frappe.db.get_list('PSOF Program Bill', filters={
-					'subscription_program': a.program,
-					'psof': self.psof,
-					'active': 1,
-					"date_from": [">=", a.date_activation_de_activation]
-				}, fields=['name'])
-
-				for bill in bills:
-					frappe.db.set_value('PSOF Program Bill', bill['name'], {
-						'active': 1})
-
-			elif a.action == "Deactivate":
-				frappe.db.set_value('PSOF Program', a.psof_program, {
-					'active': 0
-				})
-				frappe.db.set_value('PSOF Program', a.psof_program, {
-					'program_status': f'Deactivated from {self.name} on {self.modified}'
-				})
-				frappe.db.set_value('PSOF Program', a.psof_program, {
-					'psof': self.psof
-				})
-
-				frappe.db.set_value('Program Activation Item', a.name, {
-					'active': 0
-				})
-
-				bills = frappe.db.get_list('PSOF Program Bill', filters={
-					'subscription_program': a.program,
-					'psof': self.psof,
-					'active': 0,
-					"date_from": [">=", a.date_activation_de_activation]
-				}, fields=['name'])
-
-				for bill in bills:
-					frappe.db.set_value('PSOF Program Bill', bill['name'], {
-						'active': 0})
+	def before_submit(self):
+		for programs in self.get('included_programs'):
+			programs.validate_activation()
 
 
 @frappe.whitelist()

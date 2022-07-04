@@ -1,20 +1,27 @@
 {
+ "actions": [],
+ "allow_rename": 1,
  "autoname": "SC.######",
  "creation": "2020-09-24 09:20:36.103453",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "is_used",
   "contract_number",
+  "psof",
   "customer",
   "customer_name",
+  "tax_category",
   "sales_partner",
   "description",
   "column_break_5",
+  "is_supersede",
+  "bill_expired",
   "contract_date",
   "start_date",
   "expiry_date",
-  "bill_expired_until_renewed",
+  "supersede_date",
   "escalation",
   "currency",
   "renewal_contract",
@@ -23,10 +30,12 @@
   "items",
   "sec",
   "total",
-  "amended_from"
+  "amended_from",
+  "status"
  ],
  "fields": [
   {
+   "fetch_from": "psof.customer_name",
    "fieldname": "customer",
    "fieldtype": "Link",
    "label": "Cable System",
@@ -34,11 +43,12 @@
    "reqd": 1
   },
   {
-   "fetch_from": "client.customer_name",
+   "fetch_from": "customer.customer_name",
+   "fetch_if_empty": 1,
    "fieldname": "customer_name",
    "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Customer Name"
+   "label": "Customer Name",
+   "read_only": 1
   },
   {
    "fieldname": "description",
@@ -63,19 +73,13 @@
    "reqd": 1
   },
   {
+   "depends_on": "eval: !doc.bill_expired;",
    "fieldname": "expiry_date",
    "fieldtype": "Date",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Expiry Date",
-   "reqd": 1
-  },
-  {
-   "default": "1",
-   "fieldname": "bill_expired_until_renewed",
-   "fieldtype": "Check",
-   "in_list_view": 1,
-   "label": "Bill Expired until Renewed"
+   "mandatory_depends_on": "eval: !doc.bill_expired;"
   },
   {
    "allow_on_submit": 1,
@@ -102,11 +106,12 @@
    "read_only": 1
   },
   {
+   "depends_on": "eval: doc.is_supersede === 1",
    "fieldname": "contract_number",
-   "fieldtype": "Data",
-   "hidden": 1,
+   "fieldtype": "Link",
    "label": "Contract Number",
-   "unique": 1
+   "mandatory_depends_on": "eval: doc.is_supersede === 1",
+   "options": "Subscription Contract"
   },
   {
    "default": "USD",
@@ -152,10 +157,64 @@
    "fieldtype": "Section Break",
    "hidden": 1,
    "label": "Programs"
+  },
+  {
+   "fetch_from": "customer.tax_category",
+   "fetch_if_empty": 1,
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_supersede",
+   "fieldtype": "Check",
+   "label": "Supersede"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_used",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Is used",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.is_supersede === 1",
+   "fieldname": "psof",
+   "fieldtype": "Link",
+   "label": "PSOF",
+   "mandatory_depends_on": "eval: doc.is_supersede === 1",
+   "options": "PSOF"
+  },
+  {
+   "depends_on": "eval: doc.supersede_date",
+   "fieldname": "supersede_date",
+   "fieldtype": "Date",
+   "label": "Supersede Date",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "bill_expired",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Dummy"
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "\nActive\nExpired",
+   "read_only": 1
   }
  ],
  "is_submittable": 1,
- "modified": "2021-09-23 10:08:45.259193",
+ "links": [],
+ "modified": "2022-07-04 12:33:07.686411",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Contract",

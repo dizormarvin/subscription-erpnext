@@ -20,6 +20,7 @@ class MonthlyPSOF(Document):
             return
         frappe.throw(title="Error", msg="Get items has already been clicked!")
 
+    @frappe.whitelist()
     def get_items(self):
         self.prevent_dbl_click()
         start_date, end_date = frappe.db.get_value('Subscription Period', self.subscription_period, ['start_date',
@@ -50,6 +51,7 @@ class MonthlyPSOF(Document):
 
         for i in program_bills:
             customer = frappe.get_doc("Customer", i.customer_name)
+            psof = frappe.get_doc("PSOF", i.psof)
 
             self.append('bills', {
                 "assistant": customer.billing_assistant,
@@ -57,6 +59,7 @@ class MonthlyPSOF(Document):
                 "subscription_period": self.subscription_period,
                 "psof_program_bill": i.name,
                 "psof": i.psof,
+                "tax_category": psof.get("tax_category"),
                 "subscription_program": i.subscription_program,
                 "customer": i.customer_name,
                 "customer_name": customer.customer_name,

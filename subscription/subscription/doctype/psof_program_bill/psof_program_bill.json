@@ -1,15 +1,19 @@
 {
+ "actions": [],
  "creation": "2020-11-21 13:01:27.610332",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "active",
   "psof",
+  "customer_name",
   "subscription_program",
   "date_from",
   "date_to",
   "no_of_subs",
   "subscription_fee",
+  "vat_amount",
   "subscription_rate",
   "decoder_rate",
   "card_rate",
@@ -98,9 +102,29 @@
    "fieldname": "subscription_rate",
    "fieldtype": "Currency",
    "label": "MSF Less of VAT"
+  },
+  {
+   "fetch_from": "psof.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Link",
+   "label": "Customer Name",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "VAT"
+  },
+  {
+   "default": "0",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "active",
+   "read_only": 1
   }
  ],
- "modified": "2021-02-09 21:35:36.948737",
+ "links": [],
+ "modified": "2022-06-24 16:24:34.130775",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF Program Bill",
@@ -114,7 +138,7 @@
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "All",
+   "role": "Administrator",
    "share": 1,
    "write": 1
   }

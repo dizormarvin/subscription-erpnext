@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "creation": "2021-02-26 17:26:21.762050",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -12,7 +13,7 @@
   "psof_program",
   "action",
   "activation_team_section",
-  "confirmation_date",
+  "ird_model",
   "serial_no",
   "card_serial_no",
   "cam_serial_no",
@@ -70,20 +71,15 @@
   {
    "fieldname": "serial_no",
    "fieldtype": "Link",
-   "label": "IRD Serial No ",
+   "label": "IRD Serial / Unit Address",
    "options": "Serial No"
-  },
-  {
-   "fieldname": "confirmation_date",
-   "fieldtype": "Date",
-   "label": "Confirmation Date"
   },
   {
    "columns": 2,
    "fieldname": "date_activation_de_activation",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Date Activation/De-Activation",
+   "label": "Confirmation Date",
    "reqd": 1
   },
   {
@@ -115,39 +111,21 @@
    "fieldname": "technical_remarks",
    "fieldtype": "Long Text",
    "label": "Technical Remarks"
+  },
+  {
+   "fieldname": "ird_model",
+   "fieldtype": "Data",
+   "label": "IRD Model"
   }
  ],
- "modified": "2021-12-10 16:26:06.962413",
+ "istable": 1,
+ "links": [],
+ "modified": "2022-06-21 14:32:38.486973",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Program Activation Item",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Administrator",
-   "share": 1,
-   "write": 1
-  }
- ],
+ "permissions": [],
  "quick_entry": 1,
  "sort_field": "modified",
  "sort_order": "DESC",

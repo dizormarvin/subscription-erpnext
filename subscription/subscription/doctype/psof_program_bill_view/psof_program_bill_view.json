@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "creation": "2020-11-21 16:07:55.964679",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -13,13 +14,17 @@
   "section_break_5",
   "no_of_subs",
   "subscription_fee",
+  "subscription_rate",
   "vat_amount",
   "column_break_10",
-  "subscription_rate",
   "decoder_rate",
+  "vat_ird",
   "card_rate",
+  "vat_card",
   "promo_rate",
+  "vat_promo",
   "freight_rate",
+  "vat_freight",
   "psof_program_bill"
  ],
  "fields": [
@@ -127,7 +132,8 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "VAT",
-   "options": "PSOF:psof:contract_currency"
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
   },
   {
    "default": "0",
@@ -155,9 +161,42 @@
    "label": "PSOF Currency",
    "options": "Currency",
    "read_only": 1
+  },
+  {
+   "fieldname": "vat_ird",
+   "fieldtype": "Currency",
+   "label": "VAT IRD",
+   "options": "PSOF:psof:contract_currency",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_card",
+   "fieldtype": "Currency",
+   "label": "VAT Card",
+   "options": "PSOF:psof:contract_currency",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_promo",
+   "fieldtype": "Currency",
+   "label": "VAT Promo",
+   "options": "PSOF:psof:contract_currency",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_freight",
+   "fieldtype": "Currency",
+   "label": "VAT Freight",
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
   }
  ],
- "modified": "2021-09-24 13:17:27.875267",
+ "istable": 1,
+ "links": [],
+ "modified": "2022-06-14 11:22:21.126551",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF Program Bill View",

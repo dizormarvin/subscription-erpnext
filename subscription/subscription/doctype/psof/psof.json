@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "autoname": "naming_series:",
  "creation": "2020-11-21 11:31:53.733268",
  "doctype": "DocType",
@@ -8,6 +9,7 @@
   "naming_series",
   "customer_name",
   "customer",
+  "tax_category",
   "account_manager",
   "remarks",
   "column_break_2",
@@ -21,6 +23,11 @@
   "cable_system_address",
   "contact_number",
   "area_served",
+  "column_break_18",
+  "superseded",
+  "bill_until_renewed",
+  "contract_date",
+  "start_date",
   "contract_currency",
   "section_break_4",
   "programs",
@@ -33,6 +40,7 @@
   "section_break_12",
   "bill_view",
   "expiry_date",
+  "has_recomputed",
   "amended_from"
  ],
  "fields": [
@@ -146,6 +154,7 @@
    "fetch_from": "customer_name.designation",
    "fieldname": "designation",
    "fieldtype": "Data",
+   "ignore_user_permissions": 1,
    "label": "Designation"
   },
   {
@@ -195,7 +204,6 @@
    "fetch_from": "subscription_contract.currency",
    "fieldname": "contract_currency",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Contract Currency",
    "options": "Currency",
    "precision": "3",
@@ -214,9 +222,64 @@
    "fieldtype": "Data",
    "label": "Customer Name",
    "read_only": 1
+  },
+  {
+   "fetch_from": "subscription_contract.tax_category",
+   "fetch_if_empty": 1,
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "has_recomputed",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Has Recomputed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_18",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "subscription_contract.contract_date",
+   "fieldname": "contract_date",
+   "fieldtype": "Date",
+   "label": "Contract Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "subscription_contract.start_date",
+   "fetch_if_empty": 1,
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "subscription_contract.is_supersede",
+   "fetch_if_empty": 1,
+   "fieldname": "superseded",
+   "fieldtype": "Check",
+   "label": "Superseded",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "subscription_contract.bill_expired",
+   "fetch_if_empty": 1,
+   "fieldname": "bill_until_renewed",
+   "fieldtype": "Check",
+   "label": "Dummy",
+   "read_only": 1
   }
  ],
- "modified": "2022-01-10 10:19:48.767766",
+ "links": [],
+ "modified": "2022-07-04 11:42:39.245722",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF",
@@ -234,9 +297,23 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
+   "select": 1,
+   "share": 1,
+   "write": 1
   }
  ],
  "quick_entry": 1,
+ "sort_field": "modified",
  "sort_order": "DESC",
  "track_changes": 1
 }

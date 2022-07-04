@@ -1,4 +1,6 @@
 {
+ "actions": [],
+ "allow_rename": 1,
  "creation": "2020-11-21 11:53:04.515171",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -91,7 +93,7 @@
    "read_only": 1
   },
   {
-   "default": "1",
+   "default": "0",
    "fieldname": "include_in_bill_expired_until_renewed",
    "fieldtype": "Check",
    "label": "Include in Bill Expired until Renewed"
@@ -565,7 +567,8 @@
   }
  ],
  "istable": 1,
- "modified": "2021-10-04 15:31:46.103445",
+ "links": [],
+ "modified": "2022-06-23 17:12:32.138198",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF Program",

@@ -32,17 +32,28 @@ frappe.ui.form.on("Program Activation", {
 		})
 		cur_frm.refresh_fields(frm)
 	},
+	
+	psof: frm => {
+		frm.clear_table("included_programs")
 
-
-	psof: function(frm) {
-		cur_frm.call('get_programs', '', function(r){});
-	},
-
-	timeline_refresh: (frm, cdt, cdn) => {
-		if (frm.doc.workflow_state == "Approved") {
-			cur_frm.call('activate', '', function(r){})
-			frm.refresh_fields('included_programs')
-		}
+		frappe.db.get_list("PSOF Program", {
+			fields: ["subscription_program", "active", "psof", "name", "customer_name"],
+			filters: {
+				parent : frm.doc.psof
+			}
+		}).then(r => {
+			$.each(r, (i, r) => {
+				const {subscription_program, active, psof, name, customer_name} = r
+				frm.add_child("included_programs", {
+					program: subscription_program,
+					active: active,
+					psof: psof,
+					psof_program: name,
+					customer_name: customer_name
+				})
+			})
+			frm.refresh_field('included_programs');
+		})
 	},
 
 	customer_name: (frm, cdt, cdn) => {

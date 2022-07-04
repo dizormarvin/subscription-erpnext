@@ -90,10 +90,10 @@ app_license = "MIT"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"subscription.tasks.all"
-# 	],
+scheduler_events = {
+	"all": [
+		"subscription.tasks.all"
+	],
 # 	"daily": [
 # 		"subscription.tasks.daily"
 # 	],
@@ -106,7 +106,7 @@ app_license = "MIT"
 # 	"monthly": [
 # 		"subscription.tasks.monthly"
 # 	]
-# }
+}
 
 # Testing
 # -------
