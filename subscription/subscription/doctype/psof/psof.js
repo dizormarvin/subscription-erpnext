@@ -240,7 +240,7 @@ frappe.ui.form.on('PSOF', {
         const cur_doc = locals[cdt][cdn];
         const program_list = [];
 
-        if(cur_doc.subscription_program && !frm.doc.__unsaved) {
+        if(cur_doc.subscription_program && !(frm.doc.__unsaved && frm.doc.__islocal)) {
             frappe.db.get_value('PSOF Program Bill', {
                     "subscription_program": cur_doc.subscription_program,
                     "psof": cur_doc.name },

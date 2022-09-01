@@ -86,8 +86,7 @@
    "fieldname": "decoder_item",
    "fieldtype": "Link",
    "label": "Decoder Item",
-   "options": "Item",
-   "reqd": 1
+   "options": "Item"
   },
   {
    "default": "0",
@@ -107,8 +106,7 @@
    "fieldtype": "Link",
    "label": "Promo Item",
    "options": "Item",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "default": "0",
@@ -161,8 +159,7 @@
    "fieldtype": "Link",
    "label": "Freight Item",
    "options": "Item",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_18",
@@ -185,8 +182,7 @@
    "fieldname": "card_item",
    "fieldtype": "Link",
    "label": "Card Item",
-   "options": "Item",
-   "reqd": 1
+   "options": "Item"
   },
   {
    "fieldname": "column_break_22",
@@ -338,7 +334,7 @@
   }
  ],
  "links": [],
- "modified": "2022-08-15 14:51:29.159831",
+ "modified": "2022-09-01 11:58:16.710738",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Program",
