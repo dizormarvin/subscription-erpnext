@@ -14,6 +14,11 @@ from erpnext.accounts.party import get_party_account, get_due_date
 class MonthlyPSOF(Document):
     """Monthly Sales Generation"""
 
+    def on_trash(self):
+        mpsof = frappe.db.get_all("Monthly PSOF", pluck="name")
+        frappe.db.delete("Monthly PSOF Program Bill", {"parent": ["not in", mpsof]})
+        frappe.db.commit()
+
     def prevent_dbl_click(self):
         if self.is_generated == 0:
             self.db_set("is_generated", 1)
@@ -23,8 +28,8 @@ class MonthlyPSOF(Document):
     @frappe.whitelist()
     def get_items(self):
         self.prevent_dbl_click()
-        start_date, end_date = frappe.db.get_value('Subscription Period', self.subscription_period, ['start_date',
-                                                                                                     'end_date'])
+        start_date, end_date = frappe.db.get_value('Subscription Period', self.subscription_period,
+                                                   ['start_date', 'end_date'])
         previous = frappe.db.get_value('Subscription Period', {
             'start_date': start_date - dateutil.relativedelta.relativedelta(months=1)}, ['code'])
 
@@ -88,6 +93,8 @@ class MonthlyPSOF(Document):
         self.total_decoder_rate = drate
         self.total_freight_rate = frate
         self.total_promo_rate = prate
+        self.db_set("is_generated", 1)
+        self.save()
 
     @frappe.whitelist()
     def create_bills(self):
@@ -151,3 +158,13 @@ class MonthlyPSOF(Document):
             indicator='yellow',
             raise_exception=False
         )
+
+    @frappe.whitelist()
+    def generate_monthly_bills(self):
+        if not self.bills_created:
+            for bill in self.get("bills"):
+                bill.make_sales_invoice()
+            frappe.msgprint("Invoice Successfully Generated")
+            self.db_set("bills_created", 1)
+
+

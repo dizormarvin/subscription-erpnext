@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt, getdate, add_months, add_days, get_last_day, fmt_money, nowdate, format_date, get_date_str, get_first_day
+from frappe.utils import flt, getdate, add_months, add_days, get_last_day, fmt_money, nowdate, format_date, get_date_str, \
+    get_first_day, add_years
 
 
 class PSOF(Document):
@@ -17,6 +18,7 @@ class PSOF(Document):
             contract.db_set("is_used", 1)
         self.adjust_program_parent()
         self.calculate_total()
+        self.update_program_status()
 
     def adjust_program_dates(self, n_end_date, n_contract):
         for program in self.get("programs"):
@@ -24,6 +26,10 @@ class PSOF(Document):
                 "end_date": n_end_date,
                 "subscription_contract": n_contract
             })
+
+    def update_program_status(self):
+        for program in self.get("programs"):
+            program.set_generated()
 
     def adjust_program_parent(self):
         for program in self.get("programs"):
@@ -33,8 +39,8 @@ class PSOF(Document):
         self.db_set("monthly_subs_fee_total", sum(program.get("subscription_fee") for program in self.get("programs")))
 
     def autoname(self):
-        prefix = "SD" if self.superseded and self.bill_until_renewed else "D" if self.bill_until_renewed else "S"
-        if self.superseded or self.bill_until_renewed:
+        if self.bill_until_renewed:
+            prefix = "D"
             old_psof = frappe.get_doc("Subscription Contract", self.subscription_contract)
             name = old_psof.get("psof").split("-")
             self.name = f"{name[0]}-{name[1]}-{prefix}{int(name[2][1:]) + 1}" if len(name) > 2 else f"{name[0]}-{name[1]}-{prefix}{1}"
@@ -57,8 +63,8 @@ class PSOF(Document):
 
         # get data from server
         for i in progs:
-            start = i.start_date
-            end = get_last_day(i.start_date) if self.bill_until_renewed else i.end_date
+            start = i.supersede_date if i.renewal and not i.for_cb else i.start_date
+            end = i.end_date
             decoder_count = 0
             card_count = 0
             promo_count = 0
@@ -81,6 +87,8 @@ class PSOF(Document):
                 doc.active = 1 if i.renewal == 1 or i.active == 1 else 0
                 doc.currency_used = i.subscription_currency
                 doc.parent_bill = i.name
+                doc.dummy = i.include_in_bill_expired_until_renewed
+                doc.renewal = i.renewal
 
                 # Added on 1-29-21, recomputes data for 1st row to solve round-off error
 
@@ -136,10 +144,11 @@ class PSOF(Document):
                 promo_count = promo_count + 1
                 freight_count = freight_count + 1
 
+        self.update_program_status()
+
         # db containing data from PSOF
-        view = frappe.db.sql(
-            """SELECT * FROM `tabPSOF Program Bill` WHERE psof = %s AND subscription_program = %s ORDER BY date_from;""",
-            (self.name, self.subscription_program), as_dict=1)
+
+        view = self.alter_view()
 
         # send data to client
         for i in view:
@@ -180,14 +189,33 @@ class PSOF(Document):
             doc.card_rate = i.card_rate
             doc.promo_rate = i.promo_rate
             doc.freight_rate = i.freight_rate
+            doc.free_view = i.free_view
             doc.flags.ignore_mandatory = True
             doc.save()
 
+    def alter_view(self):
+        if self.superseded and not self.for_cb:
+            return frappe.db.sql(
+                """SELECT * FROM 
+                `tabPSOF Program Bill` 
+                WHERE 
+                subscription_program = %s 
+                AND
+                (psof = %s OR dummy_contract = %s) ORDER BY date_from;""",
+                (self.subscription_program, self.name, self.dummy_contract), as_dict=1)
+        else:
+            return frappe.db.sql(
+                """SELECT * FROM 
+                `tabPSOF Program Bill` 
+                WHERE psof = %s 
+                AND
+                 subscription_program = %s 
+                ORDER BY date_from;""",
+                (self.name, self.subscription_program), as_dict=1)
+
     @frappe.whitelist()
     def view_new_bill(self):
-        view = frappe.db.sql(
-            """SELECT * FROM `tabPSOF Program Bill` WHERE psof = %s AND subscription_program = %s ORDER BY date_from;""",
-            (self.name, self.subscription_program), as_dict=1)
+        view = self.alter_view()
 
         # send data to client
         for i in view:
@@ -205,7 +233,10 @@ class PSOF(Document):
                 "freight_rate": i.freight_rate,
                 "psof_program_bill": i.name,
                 "vat_amount": i.vat_amount,
-                "currency": i.currency_used
+                "currency": i.currency_used,
+                "dummy": i.dummy,
+                "renewal": i.renewal,
+                "free_view": i.free_view
             })
 
 
@@ -225,10 +256,51 @@ def get_contracts(doctype, txt, searchfield, start, page_len, filters, as_dict=F
 @frappe.whitelist()
 def delete_generated(parent, program, psof):
     programs = frappe.db.get_list('PSOF Program Bill', filters={
-        'subscription_program': program, 'psof': psof},
-                                  as_list=1)
+        'subscription_program': program, 'psof': psof}, pluck="name")
+    msg = ''
+
     if len(programs) > 0:
         for program in programs:
-            frappe.db.delete("PSOF Program Bill", program[0])
-        return f"{len(programs)} generated bill/s has been deleted"
-    return f"{program} has been removed from the list"
+            frappe.db.delete("PSOF Program Bill", program)
+        frappe.db.commit()
+        msg = f"{len(programs)} generated bill/s has been deleted"
+    else:
+        msg = f"{program} has been removed from the list"
+
+    return msg
+
+
+@frappe.whitelist()
+def create_dummy(contract=None, extend=None):
+    original_contract = frappe.get_doc("Subscription Contract", contract)
+    dummy_contract = frappe.get_doc({
+        'doctype': 'Subscription Contract',
+        'customer': original_contract.get("customer"),
+        'contract_number': contract,
+        'bill_expired': 1,
+        'contract_date': nowdate(),
+        "extension": extend,
+        'start_date': add_years(get_date_str(get_first_day(original_contract.get("start_date"))), 1),
+        'expiry_date': add_years(get_date_str(get_last_day(original_contract.get("expiry_date"))), 1)
+    })
+
+    dummy_contract.save()
+    return dummy_contract.name
+
+
+@frappe.whitelist()
+def supersede_dummy(contract=None, cb=None):
+    original_contract = frappe.get_doc("Subscription Contract", contract)
+    dummy_contract = frappe.get_doc({
+        'doctype': 'Subscription Contract',
+        'customer': original_contract.get("customer"),
+        'contract_number': contract,
+        'is_supersede': 1,
+        'for_cb': cb,
+        'contract_date': nowdate(),
+        'start_date': original_contract.get("start_date"),
+        'expiry_date': original_contract.get("expiry_date")
+    })
+
+    dummy_contract.save()
+    return dummy_contract.name

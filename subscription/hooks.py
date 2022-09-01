@@ -91,21 +91,7 @@ app_license = "MIT"
 # ---------------
 
 scheduler_events = {
-	"all": [
-		"subscription.tasks.all"
-	],
-# 	"daily": [
-# 		"subscription.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"subscription.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"subscription.tasks.weekly"
-# 	]
-# 	"monthly": [
-# 		"subscription.tasks.monthly"
-# 	]
+    "all": ["subscription.tasks.all"]
 }
 
 # Testing
@@ -126,4 +112,3 @@ scheduler_events = {
 # override_doctype_dashboards = {
 # 	"Task": "subscription.task.get_dashboard_data"
 # }
-

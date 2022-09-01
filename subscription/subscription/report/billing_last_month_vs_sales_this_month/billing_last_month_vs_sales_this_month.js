@@ -3,18 +3,45 @@
 /* eslint-disable */
 
 frappe.query_reports["BILLING LAST MONTH VS SALES THIS MONTH"] = {
+	tree: true,
+	parent_field: "parent_customer",
+	name_field: "customer",
 	"filters": [
 		{
-			fieldname: 'sales_this_month',
+			fieldname: 'mpsof',
 			label: __('Sales This Month'),
 			fieldtype: 'Link',
 			options: 'Monthly PSOF',
 		},
 		{
-			fieldname: 'billing_last_month',
-			label: __('Billing Last Month'),
+			fieldname: 'customer',
+			label: __('Cable System'),
 			fieldtype: 'Link',
-			options: 'Monthly PSOF Billing',
-		}
+			options: 'Customer',
+		},
+		{
+			fieldname: 'program',
+			label: __('Subscription Program'),
+			fieldtype: 'Link',
+			options: 'Subscription Program',
+		},
+		{
+			fieldname: 'psof',
+			label: __('PSOF No'),
+			fieldtype: 'Link',
+			options: 'PSOF',
+		},
+		{
+			fieldname: 'sub_period',
+			label: __('Subscription Period'),
+			fieldtype: 'Link',
+			options: 'Subscription Period'
+		},
+		{
+			fieldname: 'has_variance',
+			label: __('Has Variance'),
+			fieldtype: 'Check',
+			default: 0
+		},
 	]
 };

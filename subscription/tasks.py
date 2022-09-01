@@ -11,8 +11,11 @@ def all():
     WHERE
         expiry_date IS NOT NULL
         AND
-        expiry_date <= '{nowdate()}'""")
+        expiry_date <= '{nowdate()}'
+        AND
+        renewed = 0""")
 
     for contract in expired_contracts:
         doc = frappe.get_doc("Subscription Contract", contract[0])
-        doc.db_set("status", "Expired")
+        if doc.get("status") != "Expired":
+            doc.db_set("status", "Expired")

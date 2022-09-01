@@ -6,6 +6,9 @@
  "engine": "InnoDB",
  "field_order": [
   "active",
+  "dummy",
+  "renewal",
+  "free_view",
   "psof",
   "customer_name",
   "subscription_program",
@@ -18,7 +21,9 @@
   "decoder_rate",
   "card_rate",
   "promo_rate",
-  "freight_rate"
+  "freight_rate",
+  "parent_bill",
+  "dummy_contract"
  ],
  "fields": [
   {
@@ -90,13 +95,15 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Subscription Program",
-   "options": "Subscription Program"
+   "options": "Subscription Program",
+   "reqd": 1
   },
   {
    "fieldname": "psof",
    "fieldtype": "Link",
    "label": "PSOF",
-   "options": "PSOF"
+   "options": "PSOF",
+   "reqd": 1
   },
   {
    "fieldname": "subscription_rate",
@@ -108,7 +115,8 @@
    "fieldname": "customer_name",
    "fieldtype": "Link",
    "label": "Customer Name",
-   "options": "Customer"
+   "options": "Customer",
+   "reqd": 1
   },
   {
    "fieldname": "vat_amount",
@@ -119,12 +127,46 @@
    "default": "0",
    "fieldname": "active",
    "fieldtype": "Check",
-   "label": "active",
+   "label": "Active",
    "read_only": 1
+  },
+  {
+   "fieldname": "parent_bill",
+   "fieldtype": "Link",
+   "label": "Parent Bill",
+   "options": "PSOF Program",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "dummy",
+   "fieldtype": "Check",
+   "label": "Dummy",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "renewal",
+   "fieldtype": "Check",
+   "label": "Renewal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dummy_contract",
+   "fieldtype": "Link",
+   "label": "Dummy Contract",
+   "options": "Subscription Contract",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "free_view",
+   "fieldtype": "Check",
+   "label": "Free Viewing"
   }
  ],
  "links": [],
- "modified": "2022-06-24 16:24:34.130775",
+ "modified": "2022-07-29 13:21:17.444547",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF Program Bill",

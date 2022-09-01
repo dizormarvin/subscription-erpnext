@@ -1,9 +1,6 @@
 // Copyright (c) 2020, ossphin and contributors
 // For license information, please see license.txt
 
-// PSOF
-
-// **** CUSTOM FUNCTIONS ****
 const roundAccurately = (num, decimal) => Number(Math.round(num + "e" + decimal) + "e-" + decimal)
 async function validatePrograms(programList, row, frm) {
     const checker = new Set(programList);
@@ -22,16 +19,13 @@ async function validatePrograms(programList, row, frm) {
         program == undefined ? frappe.msgprint("Remove Empty Program") : frappe.throw(`${program} already in the Programs Table`);
     }
 }
-// function to get difference caused by decimal places
 function diff(period, cost) {
     return flt(cost - (flt((cost  / period), 2) * period), 2)
 }
-// to check if computation is over or under
 function cond(dif) {
     return dif >= 0 ? "OVER" : "UNDER"
 }
-
-var update_program = function(frm){
+const update_program = function(frm){
     frm.set_query ("subscription_program", function() {
         return {
             "query": "subscription.subscription.doctype.psof.psof.get_programs",
@@ -41,24 +35,19 @@ var update_program = function(frm){
         };
     });
 }
-
-const truncateByDecimalPlace = (value, numDecimalPlaces) =>
-    Math.trunc(value * Math.pow(10, numDecimalPlaces)) / Math.pow(10, numDecimalPlaces)
-
-const evaluateAllocationCond = doc => {
+const truncateByDecimalPlace = (value, numDecimalPlaces) => Math.trunc(value * Math.pow(10, numDecimalPlaces)) / Math.pow(10, numDecimalPlaces)
+const evaluateAllocationCond = (doc) => {
     doc.decoder_condition = cond(doc.decoder_difference)
     doc.card_condition = cond(doc.card_difference)
     doc.promo_condition = cond(doc.promo_difference)
     doc.freight_condition = cond(doc.freight_difference)
 }
-
-const computeAllocationDiff = doc => {
+const computeAllocationDiff = (doc) => {
     doc.decoder_difference = diff(doc.decoder_max_bill_div, doc.decoder_calculation);
     doc.card_difference = diff(doc.card_max_bill_divisor, doc.card_calculation);
     doc.promo_difference = diff(doc.promo_max_bill_divisor, doc.promo_calculation);
     doc.freight_difference = diff(doc.freight_max_bill_divisor, doc.freight_calculation);
 }
-
 const computeAllocationTotal = (doc, from_bv=false) => {
     if (from_bv) {
         return flt(frappe.utils.sum([doc.decoder_rate, doc.card_rate, doc.promo_rate, doc.freight_rate]), 2)
@@ -75,8 +64,11 @@ const computeAllocationTotal = (doc, from_bv=false) => {
         )
     }
 }
-
-const computeTax = (taxType, doc) => {
+const computeTax = (taxType, doc, flat_fee) => {
+    if (flat_fee === "Yes") {
+        doc.no_of_subs = doc.subs_display
+        doc.subscription_fee = flt((flt(doc.no_of_subs * doc.rate_per_sub)) * 1.12)
+    }
     if (taxType === "Vat Inclusive") {
         doc.less_of_vat_original = (doc.subscription_fee -  doc.total) / 1.12;
         doc.vat_amount = roundAccurately(roundAccurately(doc.less_of_vat_original * 0.12, 3), 2) // VAT
@@ -87,19 +79,27 @@ const computeTax = (taxType, doc) => {
     doc.grand_total = doc.less_of_vat_original + doc.total + doc.vat_amount;
     doc.difference_grand_total = doc.subscription_fee - doc.grand_total;
     doc.subscription_rate = doc.less_of_vat_original + doc.difference_grand_total;
-    doc.no_of_subs = Math.trunc(doc.less_of_vat_original / doc.rate_per_sub); // SUBS
+    doc.no_of_subs = Math.trunc(doc.less_of_vat_original / doc.rate_per_sub);
+
+    if (flat_fee === "No" && !frappe.utils.sum([doc.decoder_allocation_active, doc.card_allocation_active,
+        doc.promo_allocation_active, doc.freight_allocation_active])) {
+        doc.flat_subs = cint(doc.subscription_rate / doc.rate_per_sub)
+        doc.subs_display = doc.flat_subs
+    }
 }
-// Update Amounts
-var update_amounts = function(frm, cdt, cdn) {
-    let {tax_category} = frm.doc
+const update_amounts = (frm, cdt, cdn) => {
+    let {tax_category, flat_fee} = frm.doc
     let cur_doc = locals[cdt][cdn];
     computeAllocationTotal(cur_doc)
     computeAllocationDiff(cur_doc)
     evaluateAllocationCond(cur_doc)
-    computeTax(tax_category, cur_doc)
+    computeTax(tax_category, cur_doc, flat_fee)
+    frm.refresh_fields();
 };
-
 const checkContract = (contractNumber, isNew) => {
+    if (!contractNumber) {
+        return
+    }
     frappe.db.get_doc("Subscription Contract", contractNumber)
         .then(contract => {
             const {tax_category, is_supersede: su, contract_number} = contract
@@ -112,8 +112,7 @@ const checkContract = (contractNumber, isNew) => {
             }
         })
 }
-
-const reCompute = frm => {
+const reCompute = (frm) => {
     if (!checkContract(frm.doc.subscription_contract, 1)) {
         $.each(frm.doc.programs, (ind, row) => {
             update_amounts(frm,row.doctype,row.name)
@@ -124,7 +123,6 @@ const reCompute = frm => {
     }
     frm.refresh_fields()
 }
-
 const reComputeBillView = (frm, row) => {
     let total_allocation = computeAllocationTotal(row, true)
     const {tax_category} = frm.doc
@@ -147,15 +145,25 @@ const reComputeBillView = (frm, row) => {
     row.subscription_rate = less_vat + diff_gt
     frm.refresh_fields('bill_view')
 }
+const computeBillTax = (taxtype, allocation_amount) => taxtype === "Vat Inclusive" ? flt(allocation_amount - flt(allocation_amount / 1.12)) : 0;
+const flatFeeToggler = (doc) => {
+    const ns = frappe.meta.get_docfield("PSOF Program", "subs_display", doc.doc.name)
+    const sf = frappe.meta.get_docfield("PSOF Program", "subscription_fee", doc.doc.name)
+    switch (doc.doc.flat_fee) {
+        case "Yes":
+            ns.read_only = 0;
+            sf.read_only = 1;
+            break;
+        case "No":
+            ns.read_only = 1;
+            sf.read_only = 0;
+            break;
+    }
+}
 
-const computeBillTax = (taxtype, allocation_amount) =>
-    taxtype === "Vat Inclusive" ? flt(allocation_amount - flt(allocation_amount / 1.12)) : 0;
-
-
-// *************************
 
 frappe.ui.form.on('PSOF', {
-    validate: function(frm, cdt, cdn) {
+    validate: (frm, cdt, cdn) => {
         const cur_doc = locals[cdt][cdn];
         const program_list = [];
         if(cur_doc.programs) {
@@ -174,8 +182,20 @@ frappe.ui.form.on('PSOF', {
             }
         }
     },
-
     onload: (frm) => {
+        if (!frm.doc.__unsaved) {
+            const cur_programs = frm.doc.programs.map((e) => e.subscription_program).filter((z) => z)
+            if (cur_programs.length > 0 && cur_programs) {
+            frm.set_query("subscription_program", "programs", () => {
+                return {
+                    filters: {
+                        name: ["not in", cur_programs]
+                    }
+                }
+            })
+        }
+             flatFeeToggler(frm)
+        }
         frm.set_query("subscription_contract", () => {
             return {
                 query: "subscription.subscription.doctype.psof.psof.get_contracts",
@@ -188,46 +208,39 @@ frappe.ui.form.on('PSOF', {
             reCompute(frm)
         }
         frm.doc.contract_currency = 'USD'
-        frm.doc.subscription_program = ""
         frm.toggle_display(['generate'], false)
         frm.toggle_display(['view_bill'], false)
-        cur_frm.clear_table("bill_view");
         update_program(frm);
-        cur_frm.refresh_fields(frm);
+        frm.set_value('subscription_program', '')
+        frm.clear_table('bill_view');
     },
-
-    onload_post_render: (frm) => {
-        if (frm.doc.bill_until_renewed) {
-            frm.$wrapper.find("[data-fieldname='end_date']").hide()
-            frm.$wrapper.find(".data-row>[data-fieldname='subscription_program']").addClass("col-xs-4")
-        } else {
-            frm.$wrapper.find("[data-fieldname='bill_view']>div.grid-footer").hide()
-        }
-    },
-
+    // onload_post_render: (frm) => {
+    //     if (frm.doc.bill_until_renewed) {
+    //         frm.$wrapper.find("[data-fieldname='end_date']").hide()
+    //         frm.$wrapper.find(".data-row>[data-fieldname='subscription_program']").addClass("col-xs-4")
+    //     } else {
+    //         frm.$wrapper.find("[data-fieldname='bill_view']>div.grid-footer").hide()
+    //     }
+    // },
     tax_category: frm => reCompute(frm),
-
-    programs: function(frm) {
+    programs: (frm) => {
         update_program(frm);
         cur_frm.refresh_fields(frm);
     },
-
-    before_save: function(frm) {
+    before_save: (frm) => {
         // cur_frm.call('create_bill', function (r){});
         cur_frm.call('update_bills', function (r){});
         cur_frm.refresh_fields();
     },
-
-    after_save: function (frm) {
+    after_save: (frm) => {
         cur_frm.clear_table("bill_view");
         cur_frm.refresh_fields(frm)
     },
-
-    subscription_program: function(frm, cdt, cdn) {
+    subscription_program: (frm, cdt, cdn) => {
         const cur_doc = locals[cdt][cdn];
         const program_list = [];
 
-        if(cur_doc.subscription_program) {
+        if(cur_doc.subscription_program && !frm.doc.__unsaved) {
             frappe.db.get_value('PSOF Program Bill', {
                     "subscription_program": cur_doc.subscription_program,
                     "psof": cur_doc.name },
@@ -254,20 +267,20 @@ frappe.ui.form.on('PSOF', {
                 program_list.push(cur_doc.programs[i].subscription_program)
             };
             let p = program_list.includes(cur_doc.subscription_program)
-
             if(!p) {
-                if (cur_doc.subscription_program === undefined ) {}
+                if (cur_doc.subscription_program === '' ) {
+                    return
+                }
                 else {
                     frappe.throw(__(cur_doc.subscription_program + ' not in the list of programs'))
                 }
             }
-        } else {
+        } else if (!frm.doc.__unsaved && !cur_doc.programs) {
             frappe.throw(__("Add a program first"))
         }
         cur_frm.clear_table("bill_view");
         cur_frm.refresh_fields(frm);
     },
-
     generate(frm,cdt,cdn) {
         const cur_doc = locals[cdt][cdn];
         const programs = frm.doc.programs
@@ -298,16 +311,18 @@ frappe.ui.form.on('PSOF', {
         cur_frm.call('create_bill', function(r){});
         cur_frm.refresh_fields(frm);
     },
-    view_bill: function (frm) {
+    view_bill: (frm) => {
         cur_frm.clear_table("bill_view");
         cur_frm.call('view_new_bill', function(r){})
-            .then((r) => {
-                $.each(frm.doc.bill_view, (i, r) => {
-                    reComputeBillView(frm, locals[r.doctype][r.name])
-                })
-            })
         cur_frm.refresh_fields(frm);
-    }
+    },
+    flat_fee: (frm) => {
+        if (in_list(["Yes", "No"], frm.doc.flat_fee)) {
+            frappe.confirm(`You are setting the Flat Fee to ${frm.doc.flat_fee}, this cannot be changed. Are you sure you want to proceed?`,
+                () => frm.save(),
+                () => frm.refresh())
+        }
+    },
 });
 
 frappe.ui.form.on("PSOF Program Bill View", {
@@ -339,7 +354,7 @@ frappe.ui.form.on("PSOF Program Bill View", {
                     row.vat_promo = r.vat_promo
                     row.date_from = frappe.datetime.add_months(r.date_from, 1)
                     row.date_to = frappe.datetime.add_months(r.date_to, 1)
-                    console.log(r, row)
+                    row.free_view = r.free_view
                 }
             })
 
@@ -351,30 +366,32 @@ frappe.ui.form.on("PSOF Program Bill View", {
 
 frappe.ui.form.on("PSOF Program", {
     before_programs_remove: (frm, cdt, cdn) => {
-        var cur_doc = locals[cdt][cdn];
-        frappe.confirm(`Are you sure you want to delete ${cur_doc.subscription_program}?`,
+        let row = locals[cdt][cdn];
+        if (row.subscription_program) {
+            frappe.confirm(`Are you sure you want to delete ${row.subscription_program}?`,
             () => {
                 frappe.call({
                     method: "subscription.subscription.doctype.psof.psof.delete_generated",
-                    args: {'parent': cur_doc.name, 'program': cur_doc.subscription_program, 'psof': frm.doc.name },
+                    args: {'parent': row.name, 'program': row.subscription_program, 'psof': frm.doc.name },
                     callback: r => {
-                        frappe.msgprint(r);
-                        frm.save();
-                        frm.refresh();
-                    }
+                        if (r) {
+                            frappe.msgprint(r.message)
+                        }
+                    },
                 })
             }, () => frm.reload_doc()
         );
+        }
 
         frappe.db.get_value('Program Activation Item', {
-            "program": cur_doc.subscription_program, "psof_program": cur_doc.name, "psof": cur_doc.parent
+            "program": row.subscription_program, "psof_program": row.name, "psof": row.parent
         }, ['program', 'psof_program', 'psof', 'parent'])
             .then(r => {
                 let program = r.message
-                if (program.program === cur_doc.subscription_program && program.psof_program === cur_doc.name && program.psof === cur_doc.parent) {
+                if (program.program === row.subscription_program && program.psof_program === row.name && program.psof === row.parent) {
                     frm.disable_save()
                     frappe.msgprint({
-                        title: __(`${cur_doc.subscription_program} cannot be removed`),
+                        title: __(`${row.subscription_program} cannot be removed`),
                         message: __(`Program is linked with Activation Module ${program.parent}, click Undo or reload doccument`),
                         primary_action:{
                             'label': 'Undo',
@@ -389,20 +406,17 @@ frappe.ui.form.on("PSOF Program", {
             })
         frm.refresh_fields();
     },
-
     programs_remove: (frm, cdt, cdn) => {
         let row = locals[cdt][cdn];
         frm.enable_save();
         cur_frm.clear_table("bill_view");
         cur_frm.refresh_fields(frm);
     },
-
     subscription_program: (frm, cdt, cdn) => {
         let row = locals[cdt][cdn]
         const programList = frm.doc.programs.map(val => val['subscription_program']);
         validatePrograms(programList, row, frm)
     },
-
     programs_add: (frm, cdt, cdn) => {
         const row = locals[cdt][cdn];
         let date = new Date(frm.doc.start_date);
@@ -421,9 +435,9 @@ frappe.ui.form.on("PSOF Program", {
         });
         frm.refresh_fields();
     },
-
     //Active Checkbox
-    decoder_allocation_active: function(frm, cdt, cdn) {
+    decoder_allocation_active: (frm, cdt, cdn) => {
+        var cur_doc = locals[cdt][cdn];
         if(cur_doc.decoder_allocation_active === 1) {
         } else {
             cur_doc.decoder_max_bill_count = 0;
@@ -431,8 +445,7 @@ frappe.ui.form.on("PSOF Program", {
         update_amounts(frm, cdt, cdn);
         frm.refresh_fields ();
     },
-
-    promo_allocation_active: function (frm, cdt, cdn) {
+    promo_allocation_active: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
         if(cur_doc.promo_allocation_active === 1) {
         } else {
@@ -441,8 +454,7 @@ frappe.ui.form.on("PSOF Program", {
         update_amounts(frm, cdt, cdn);
         frm.refresh_fields();
     },
-
-    freight_allocation_active: function (frm, cdt, cdn) {
+    freight_allocation_active: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
         if(cur_doc.freight_allocation_active === 1) {
         } else {
@@ -451,8 +463,7 @@ frappe.ui.form.on("PSOF Program", {
         update_amounts(frm, cdt, cdn);
         frm.refresh_fields();
     },
-
-    card_allocation_active: function (frm, cdt, cdn) {
+    card_allocation_active: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
         if(cur_doc.card_allocation_active === 1) {
         } else {
@@ -461,8 +472,7 @@ frappe.ui.form.on("PSOF Program", {
         update_amounts(frm, cdt, cdn);
         frm.refresh_fields();
     },
-
-    renewal: function(frm, cdt, cdn) {
+    renewal: (frm, cdt, cdn) => {
         const cur_doc = locals[cdt][cdn];
         if(cur_doc.renewal === 1) {
             cur_doc.active = 1
@@ -472,78 +482,39 @@ frappe.ui.form.on("PSOF Program", {
             cur_doc.program_status = "<b>Status:</b> "
         }
         update_amounts(frm, cdt, cdn);
-        frm.refresh_fields();
     },
+    //Rates
+    subscription_fee:(frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
+    no_of_subs: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
+    subs_display: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
+    decoder_rate: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
+    promo_rate: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
+    freight_rate: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
+    card_rate: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
+    decoder_difference: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
 
-//Rates
-    subscription_fee: function(frm, cdt, cdn) {
-        update_amounts(frm, cdt, cdn);
-    },
-    decoder_rate: function(frm, cdt, cdn) {
-        update_amounts(frm, cdt, cdn);
-    },
-    promo_rate: function(frm, cdt, cdn) {
-        update_amounts(frm, cdt, cdn);
-    },
-    freight_rate: function(frm, cdt, cdn) {
-        update_amounts(frm, cdt, cdn);
-    },
-    card_rate: function(frm, cdt, cdn) {
-        update_amounts(frm, cdt, cdn);
-    },
-    decoder_difference: function(frm, cdt, cdn) {
-        update_amounts(frm, cdt, cdn);
-    },
-
-    /*  Decoder */
-    decoder_calculation: function(frm, cdt, cdn) {
+    decoder_calculation: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
         cur_doc.decoder_rate = cur_doc.decoder_calculation / cur_doc.decoder_max_bill_div;
         cur_doc.decoder_rate = truncateByDecimalPlace(cur_doc.decoder_rate, 2)
         update_amounts(frm, cdt, cdn);
         frm.refresh_fields();
     },
-
-    decoder_max_bill_div: function (frm, cdt, cdn) {
-        var cur_doc = locals[cdt][cdn];
-        cur_doc.decoder_rate = cur_doc.decoder_calculation / cur_doc.decoder_max_bill_div;
-        update_amounts(frm, cdt, cdn);
-        frm.refresh_fields();
-    },
-
-    /*  Card */
-    card_calculation: function(frm, cdt, cdn) {
+    card_calculation: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
         cur_doc.card_rate = cur_doc.card_calculation / cur_doc.card_max_bill_divisor;
         cur_doc.card_rate = truncateByDecimalPlace(cur_doc.card_rate, 2)
         update_amounts(frm, cdt, cdn);
         frm.refresh_fields();
     },
-
-    card_max_bill_divisor: function(frm, cdt, cdn) {
-        var cur_doc = locals[cdt][cdn];
-        cur_doc.card_rate = cur_doc.card_calculation / cur_doc.card_max_bill_divisor;
-        update_amounts(frm, cdt, cdn);
-        frm.refresh_fields();
-    },
-
-    /*  Promo */
-    promo_calculation: function(frm, cdt, cdn) {
+    promo_calculation: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
         cur_doc.promo_rate = cur_doc.promo_calculation / cur_doc.promo_max_bill_divisor;
         cur_doc.promo_rate = truncateByDecimalPlace(cur_doc.promo_rate, 2)
         update_amounts(frm, cdt, cdn);
         frm.refresh_fields();
     },
-
-    promo_max_bill_divisor: function(frm, cdt, cdn) {
-        var cur_doc = locals[cdt][cdn];
-        cur_doc.promo_rate = cur_doc.promo_calculation / cur_doc.promo_max_bill_divisor;
-        update_amounts(frm, cdt, cdn);
-        frm.refresh_fields();
-    },
-    /* Freight */
-    freight_calculation: function(frm, cdt, cdn) {
+    freight_calculation: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
         cur_doc.freight_rate = cur_doc.freight_calculation / cur_doc.freight_max_bill_divisor;
         cur_doc.freight_rate = truncateByDecimalPlace(cur_doc.freight_rate, 2)
@@ -551,7 +522,25 @@ frappe.ui.form.on("PSOF Program", {
         frm.refresh_fields();
     },
 
-    freight_max_bill_divisor: function(frm, cdt, cdn) {
+    decoder_max_bill_div: (frm, cdt, cdn) => {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.decoder_rate = cur_doc.decoder_calculation / cur_doc.decoder_max_bill_div;
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+    card_max_bill_divisor: (frm, cdt, cdn) => {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.card_rate = cur_doc.card_calculation / cur_doc.card_max_bill_divisor;
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+    promo_max_bill_divisor: (frm, cdt, cdn) => {
+        var cur_doc = locals[cdt][cdn];
+        cur_doc.promo_rate = cur_doc.promo_calculation / cur_doc.promo_max_bill_divisor;
+        update_amounts(frm, cdt, cdn);
+        frm.refresh_fields();
+    },
+    freight_max_bill_divisor: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
         cur_doc.freight_rate = cur_doc.freight_calculation / cur_doc.freight_max_bill_divisor;
         update_amounts(frm, cdt, cdn);

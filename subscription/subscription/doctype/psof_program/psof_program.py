@@ -32,6 +32,12 @@ class PSOFProgram(Document):
         })
         self.set_programs_status(action, date)
 
+    def set_generated(self):
+        status = []
+        status.append("Active") if self.active else status.append("Inactive")
+        status.append("Bill Generated") if self.bill_generated else status.append("")
+        self.db_set("program_status", f"<b>Status:</b> {' - '.join([stat for stat in status if stat])}")
+
     def set_programs_status(self, action, date):
         bills = frappe.db.get_list('PSOF Program Bill', filters={
             'subscription_program': self.subscription_program,

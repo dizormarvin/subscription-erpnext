@@ -6,6 +6,9 @@
  "engine": "InnoDB",
  "field_order": [
   "active",
+  "dummy",
+  "renewal",
+  "free_view",
   "subscription_program",
   "currency",
   "column_break_3",
@@ -33,7 +36,8 @@
    "fieldtype": "Link",
    "label": "Subscription Program",
    "options": "Subscription Program",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "columns": 2,
@@ -137,6 +141,7 @@
   },
   {
    "default": "0",
+   "fetch_from": "psof_program_bill.active",
    "fieldname": "active",
    "fieldtype": "Check",
    "label": "Active",
@@ -192,11 +197,33 @@
    "label": "VAT Freight",
    "options": "PSOF:psof:contract_currency",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "psof_program_bill.dummy",
+   "fieldname": "dummy",
+   "fieldtype": "Check",
+   "label": "Dummy",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "psof_program_bill.renewal",
+   "fieldname": "renewal",
+   "fieldtype": "Check",
+   "label": "Renewal",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "free_view",
+   "fieldtype": "Check",
+   "label": "Free Viewing"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2022-06-14 11:22:21.126551",
+ "modified": "2022-07-29 13:22:36.761812",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF Program Bill View",

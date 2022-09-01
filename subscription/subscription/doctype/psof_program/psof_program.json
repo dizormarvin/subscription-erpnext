@@ -11,9 +11,11 @@
   "renewal",
   "include_in_bill_expired_until_renewed",
   "bill_generated",
+  "for_cb",
   "column_break_6",
   "subscription_contract",
   "subscription_currency",
+  "item_class",
   "section_break_3",
   "package",
   "subscription_program",
@@ -21,6 +23,7 @@
   "interval",
   "count",
   "start_date",
+  "supersede_date",
   "end_date",
   "column_break_7",
   "max_bill_count",
@@ -38,6 +41,8 @@
   "column_break_13",
   "rate_per_sub",
   "no_of_subs",
+  "subs_display",
+  "flat_subs",
   "total",
   "decoder_section",
   "decoder_calculation",
@@ -62,6 +67,7 @@
   "column_break_15",
   "promo_max_bill_divisor",
   "promo_max_bill_count",
+  "promo_name",
   "promo_condition",
   "freight_section",
   "freight_calculation",
@@ -91,12 +97,6 @@
    "in_list_view": 1,
    "label": "Active",
    "read_only": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "include_in_bill_expired_until_renewed",
-   "fieldtype": "Check",
-   "label": "Include in Bill Expired until Renewed"
   },
   {
    "fieldname": "section_break_3",
@@ -203,7 +203,8 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Monthly Subs Fee",
-   "options": "PSOF:psof:contract_currency"
+   "options": "PSOF:psof:contract_currency",
+   "read_only": 1
   },
   {
    "allow_on_submit": 1,
@@ -226,14 +227,6 @@
    "fieldname": "rate_per_sub",
    "fieldtype": "Read Only",
    "label": "Rate / Sub"
-  },
-  {
-   "allow_on_submit": 1,
-   "columns": 1,
-   "fieldname": "no_of_subs",
-   "fieldtype": "Read Only",
-   "in_list_view": 1,
-   "label": "Subs"
   },
   {
    "columns": 1,
@@ -426,12 +419,6 @@
    "label": "Sub Total"
   },
   {
-   "default": "0",
-   "fieldname": "renewal",
-   "fieldtype": "Check",
-   "label": "Renewal"
-  },
-  {
    "fieldname": "vat_amount",
    "fieldtype": "Currency",
    "label": "VAT",
@@ -564,11 +551,73 @@
    "length": 2,
    "options": "PSOF:psof:contract_currency",
    "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "include_in_bill_expired_until_renewed",
+   "fieldtype": "Check",
+   "label": "Dummy",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "renewal",
+   "fieldtype": "Check",
+   "label": "Renewal",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.supersede_date;",
+   "fieldname": "supersede_date",
+   "fieldtype": "Date",
+   "label": "Supersede / Renewal Date",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "for_cb",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "For CB",
+   "read_only": 1
+  },
+  {
+   "default": "REGULAR",
+   "fieldname": "item_class",
+   "fieldtype": "Select",
+   "label": "Item Class",
+   "options": "REGULAR\nPACKAGE\nDISCOUNTED\nFREE"
+  },
+  {
+   "fieldname": "promo_name",
+   "fieldtype": "Link",
+   "label": "Promo Name",
+   "options": "Subscription Program Promo"
+  },
+  {
+   "fieldname": "no_of_subs",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Subs",
+   "read_only": 1
+  },
+  {
+   "fieldname": "subs_display",
+   "fieldtype": "Int",
+   "label": "Subs",
+   "read_only": 1
+  },
+  {
+   "fieldname": "flat_subs",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Subs",
+   "read_only": 1
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2022-06-23 17:12:32.138198",
+ "modified": "2022-08-31 10:45:12.376541",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF Program",

@@ -16,19 +16,30 @@
   "subscription_contract",
   "designation",
   "signatory",
+  "flat_fee",
+  "renewal",
+  "new_aflt",
+  "new_program",
   "date_from",
   "date_to",
   "cable_system_details_section",
   "address_title",
   "cable_system_address",
   "contact_number",
+  "column_break_21",
   "area_served",
-  "column_break_18",
+  "area_of_operation",
+  "contract_details_section",
   "superseded",
   "bill_until_renewed",
+  "for_cb",
   "contract_date",
   "start_date",
   "contract_currency",
+  "column_break_18",
+  "dummy_psof",
+  "dummy_contract",
+  "supersede_date",
   "section_break_4",
   "programs",
   "monthly_subs_fee_total",
@@ -73,6 +84,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "depends_on": "eval: doc.programs;",
    "fieldname": "subscription_program",
    "fieldtype": "Link",
    "label": "Program",
@@ -80,6 +92,7 @@
   },
   {
    "allow_in_quick_entry": 1,
+   "depends_on": "eval: doc.subscription_program;",
    "fieldname": "bill_view",
    "fieldtype": "Table",
    "label": "PSOF Program Bill View",
@@ -96,6 +109,7 @@
   },
   {
    "fetch_from": "subscription_contract.expiry_date",
+   "fetch_if_empty": 1,
    "fieldname": "expiry_date",
    "fieldtype": "Date",
    "hidden": 1,
@@ -107,7 +121,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Cable System",
-   "options": "Customer"
+   "options": "Customer",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_2",
@@ -124,6 +139,7 @@
    "read_only": 1
   },
   {
+   "depends_on": "eval: doc.flat_fee;",
    "fieldname": "programs",
    "fieldtype": "Table",
    "label": "Programs",
@@ -166,6 +182,7 @@
   },
   {
    "collapsible": 1,
+   "depends_on": "eval: doc.customer_name;",
    "fieldname": "cable_system_details_section",
    "fieldtype": "Section Break",
    "label": "Cable System Details"
@@ -186,7 +203,8 @@
    "fieldname": "area_served",
    "fieldtype": "Link",
    "label": "Area Served",
-   "options": "Areas of Operation"
+   "options": "Area Served",
+   "width": "0"
   },
   {
    "fieldname": "remarks",
@@ -196,6 +214,7 @@
   {
    "fieldname": "naming_series",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "PSOF #",
    "options": "CB-.######"
   },
@@ -261,6 +280,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval: doc.superseded;",
    "fetch_from": "subscription_contract.is_supersede",
    "fetch_if_empty": 1,
    "fieldname": "superseded",
@@ -270,16 +290,88 @@
   },
   {
    "default": "0",
+   "depends_on": "eval: doc.bill_until_renewed;",
    "fetch_from": "subscription_contract.bill_expired",
    "fetch_if_empty": 1,
    "fieldname": "bill_until_renewed",
    "fieldtype": "Check",
    "label": "Dummy",
    "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "contract_details_section",
+   "fieldtype": "Section Break",
+   "label": "Contract Details"
+  },
+  {
+   "fieldname": "dummy_psof",
+   "fieldtype": "Link",
+   "label": "Dummy PSOF",
+   "options": "PSOF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dummy_contract",
+   "fieldtype": "Link",
+   "label": "Dummy Contract",
+   "options": "Subscription Contract",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supersede_date",
+   "fieldtype": "Date",
+   "label": "Supersede / Renewal Date",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "for_cb",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "For CB",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: (doc.flat_fee == '' && doc.subscription_contract) || in_list([\"Yes\", \"No\"], doc.flat_fee);",
+   "fieldname": "flat_fee",
+   "fieldtype": "Select",
+   "label": "Flat Fee",
+   "options": "\nYes\nNo",
+   "read_only_depends_on": "eval: in_list([\"Yes\", \"No\"], doc.flat_fee)"
+  },
+  {
+   "default": "0",
+   "fieldname": "renewal",
+   "fieldtype": "Check",
+   "label": "Renewal"
+  },
+  {
+   "default": "0",
+   "fieldname": "new_aflt",
+   "fieldtype": "Check",
+   "label": "New Affiliate"
+  },
+  {
+   "default": "0",
+   "fieldname": "new_program",
+   "fieldtype": "Check",
+   "label": "New Program"
+  },
+  {
+   "fieldname": "column_break_21",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "area_served.area_name",
+   "fetch_if_empty": 1,
+   "fieldname": "area_of_operation",
+   "fieldtype": "Long Text",
+   "label": "Area of Operation"
   }
  ],
  "links": [],
- "modified": "2022-07-04 11:42:39.245722",
+ "modified": "2022-09-01 09:28:41.047080",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF",
@@ -308,6 +400,18 @@
    "report": 1,
    "role": "Administrator",
    "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
    "share": 1,
    "write": 1
   }

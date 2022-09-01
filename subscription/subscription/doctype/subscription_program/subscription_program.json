@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:program_code",
@@ -17,6 +18,8 @@
   "currency",
   "rate_per_sub",
   "no_of_subs",
+  "accounting_defaults_section",
+  "accounting_defaults",
   "decoder_sec",
   "decoder_item",
   "decoder_max_bill_count",
@@ -318,13 +321,24 @@
    "options": "Account"
   },
   {
-   "fetch_from": "item.item_class",
    "fieldname": "item_class",
    "fieldtype": "Data",
    "label": "Item Class"
+  },
+  {
+   "fieldname": "accounting_defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting Defaults"
+  },
+  {
+   "fieldname": "accounting_defaults",
+   "fieldtype": "Table",
+   "label": "Subscription Program Accounting Defaults",
+   "options": "Subscription Program Accounting Defaults"
   }
  ],
- "modified": "2021-09-08 08:51:33.298410",
+ "links": [],
+ "modified": "2022-08-15 14:51:29.159831",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Program",

@@ -4,8 +4,86 @@
 
 frappe.ui.form.on('Subscription Contract',  {
 	onload: (frm) => {
-		frm.add_custom_button("Make Dummy Contract", () => alert("hello"), 'Contract Options')
-		frm.add_custom_button("Supersede Dummy Contract", () => alert("hello"), 'Contract Options')
+		frm.set_query('psof', () => {
+			if (frm.doc.bill_expired) {
+				return {
+					filters: {
+						subscription_contract: frm.doc.contract_number,
+					}
+				}
+			} else if (frm.doc.is_supersede) {
+				return {
+					filters: {
+						subscription_contract: frm.doc.contract_number,
+						bill_until_renewed: 1
+					}
+				}
+			}
+		});
+
+		if (frm.doc.docstatus === 1) {
+			if (frm.doc.status === "Expired") {
+				frm.add_custom_button("Make Dummy Contract", () => {
+					frappe.call({
+						method: "subscription.subscription.doctype.psof.psof.create_dummy",
+						args: {
+							contract: frm.doc.name
+						},
+						callback: (r) => {
+							if (r) {
+								frappe.set_route("Form", "Subscription Contract", r.message)
+							}
+						}
+					})
+				}, 'Contract Options')
+			}
+
+			if (frm.doc.bill_expired === 1 && frm.doc.status === "Active") {
+				frm.add_custom_button("Supersede Dummy Contract", () => {
+					frappe.call({
+						method: "subscription.subscription.doctype.psof.psof.supersede_dummy",
+						args: {
+							contract: frm.doc.name
+						},
+						callback: (r) => {
+							if (r) {
+								frappe.set_route("Form", "Subscription Contract", r.message)
+							}
+						}
+					})
+				}, 'Contract Options')
+
+				frm.add_custom_button("Supersede Dummy Contract - Cableboss", () => {
+					frappe.call({
+						method: "subscription.subscription.doctype.psof.psof.supersede_dummy",
+						args: {
+							contract: frm.doc.name,
+							cb: 1
+						},
+						callback: (r) => {
+							if (r) {
+								frappe.set_route("Form", "Subscription Contract", r.message)
+							}
+						}
+					})
+				}, 'Contract Options')
+			} else if (frm.doc.bill_expired === 1 && frm.doc.status === "Expired") {
+				frm.add_custom_button("Extend Dummy Contract", () => {
+					frappe.call({
+						method: "subscription.subscription.doctype.psof.psof.create_dummy",
+						args: {
+							contract: frm.doc.name,
+							extend: 1
+						},
+						callback: (r) => {
+							if (r) {
+								frappe.set_route("Form", "Subscription Contract", r.message)
+							}
+						}
+					})
+				}, 'Contract Options')
+			}
+		}
 	},
 
 	setup: (frm) => {
@@ -17,7 +95,7 @@ frappe.ui.form.on('Subscription Contract',  {
 		if (!frm.doc.bill_expired) {frm.set_value('expiry_date', frappe.format(new Date(date.getFullYear() + 1, date.getMonth(), 0), {fieldType: 'Date'}))}
 	},
 
-	contract_number: frm => {
+	contract_number: (frm) => {
 		frm.set_query('psof', () => {
 			return {
 				filters: {
@@ -26,6 +104,5 @@ frappe.ui.form.on('Subscription Contract',  {
 			}
 		})
 	},
-
 });
 
