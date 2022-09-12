@@ -1,0 +1,31 @@
+{
+ "actions": [],
+ "autoname": "field:island_name",
+ "creation": "2021-05-24 09:12:30.482334",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "island_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "island_name",
+   "fieldtype": "Data",
+   "label": "Island Name",
+   "unique": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2022-09-07 15:32:06.023947",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Philippine Islands",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
