@@ -12,6 +12,7 @@
   "include_in_bill_expired_until_renewed",
   "bill_generated",
   "for_cb",
+  "is_package",
   "column_break_6",
   "subscription_contract",
   "subscription_currency",
@@ -85,6 +86,7 @@
   {
    "fieldname": "subscription_program",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "Program",
    "options": "Subscription Program"
@@ -612,11 +614,20 @@
    "hidden": 1,
    "label": "Subs",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "subscription_program.is_package",
+   "fetch_if_empty": 1,
+   "fieldname": "is_package",
+   "fieldtype": "Check",
+   "label": "Packaged Program",
+   "read_only": 1
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2022-09-05 10:46:45.569173",
+ "modified": "2022-09-09 11:45:00.033697",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF Program",

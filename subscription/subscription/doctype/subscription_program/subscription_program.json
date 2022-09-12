@@ -15,9 +15,12 @@
   "subscription_rate",
   "column_break_5",
   "active",
+  "is_package",
   "currency",
   "rate_per_sub",
   "no_of_subs",
+  "subscription_package_details_section",
+  "packaged_programs",
   "accounting_defaults_section",
   "accounting_defaults",
   "decoder_sec",
@@ -74,12 +77,13 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Rate / Sub",
-   "options": "Currency",
-   "reqd": 1
+   "mandatory_depends_on": "eval: doc.is_package;",
+   "options": "Currency"
   },
   {
    "fieldname": "decoder_sec",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Decoder"
   },
   {
@@ -98,6 +102,7 @@
   {
    "fieldname": "promo_sec",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Promo"
   },
   {
@@ -125,6 +130,7 @@
   {
    "fieldname": "program_name",
    "fieldtype": "Data",
+   "ignore_user_permissions": 1,
    "label": "Program Name",
    "reqd": 1
   },
@@ -151,6 +157,7 @@
   {
    "fieldname": "freight_sec",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Freight"
   },
   {
@@ -176,6 +183,7 @@
   {
    "fieldname": "card_sec",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Card"
   },
   {
@@ -240,6 +248,7 @@
   {
    "fieldname": "accounting_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Accounting Details"
   },
   {
@@ -308,7 +317,8 @@
   },
   {
    "fieldname": "section_break_42",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hidden": 1
   },
   {
    "fieldname": "vat_account",
@@ -322,6 +332,7 @@
    "label": "Item Class"
   },
   {
+   "collapsible": 1,
    "fieldname": "accounting_defaults_section",
    "fieldtype": "Section Break",
    "label": "Accounting Defaults"
@@ -331,10 +342,29 @@
    "fieldtype": "Table",
    "label": "Subscription Program Accounting Defaults",
    "options": "Subscription Program Accounting Defaults"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_package",
+   "fieldtype": "Check",
+   "label": "Packaged Program"
+  },
+  {
+   "depends_on": "eval: doc.is_package;",
+   "fieldname": "subscription_package_details_section",
+   "fieldtype": "Section Break",
+   "label": "Subscription Package Details"
+  },
+  {
+   "fieldname": "packaged_programs",
+   "fieldtype": "Table",
+   "label": "Packaged Program",
+   "mandatory_depends_on": "eval: doc.is_package;",
+   "options": "Subscription Package Program"
   }
  ],
  "links": [],
- "modified": "2022-09-01 11:58:16.710738",
+ "modified": "2022-09-09 11:45:50.031508",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Program",
@@ -361,6 +391,19 @@
    "read": 1,
    "report": 1,
    "role": "Subscription Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
+   "select": 1,
    "share": 1,
    "write": 1
   }
