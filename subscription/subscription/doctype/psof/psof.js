@@ -67,7 +67,7 @@ const computeAllocationTotal = (doc, from_bv=false) => {
 const computeTax = (taxType, doc, flat_fee) => {
     if (flat_fee === "Yes") {
         doc.no_of_subs = doc.subs_display
-        doc.subscription_fee = flt((flt(doc.no_of_subs * doc.rate_per_sub)) * 1.12)
+        doc.subscription_rate = flt((flt(doc.no_of_subs * doc.rate_per_sub)) * 1.12)
     }
     if (taxType === "Vat Inclusive") {
         doc.less_of_vat_original = (doc.subscription_fee -  doc.total) / 1.12;
@@ -81,11 +81,11 @@ const computeTax = (taxType, doc, flat_fee) => {
     doc.subscription_rate = doc.less_of_vat_original + doc.difference_grand_total;
     doc.no_of_subs = Math.trunc(doc.less_of_vat_original / doc.rate_per_sub);
 
-    if (flat_fee === "No" && !frappe.utils.sum([doc.decoder_allocation_active, doc.card_allocation_active,
+    if (!frappe.utils.sum([doc.decoder_allocation_active, doc.card_allocation_active,
         doc.promo_allocation_active, doc.freight_allocation_active])) {
         doc.flat_subs = cint(doc.subscription_rate / doc.rate_per_sub)
-        doc.subs_display = doc.flat_subs
     }
+    doc.subs_display = flat_fee === "Yes"? doc.no_of_subs : doc.flat_subs;
 }
 const update_amounts = (frm, cdt, cdn) => {
     let {tax_category, flat_fee} = frm.doc
@@ -149,16 +149,16 @@ const computeBillTax = (taxtype, allocation_amount) => taxtype === "Vat Inclusiv
 const flatFeeToggler = (doc) => {
     const ns = frappe.meta.get_docfield("PSOF Program", "subs_display", doc.doc.name)
     const sf = frappe.meta.get_docfield("PSOF Program", "subscription_fee", doc.doc.name)
-    switch (doc.doc.flat_fee) {
-        case "Yes":
-            ns.read_only = 0;
-            sf.read_only = 1;
-            break;
-        case "No":
-            ns.read_only = 1;
-            sf.read_only = 0;
-            break;
-    }
+    // switch (doc.doc.flat_fee) {
+    //     case "Yes":
+    //         ns.read_only = 0;
+    //         sf.read_only = 1;
+    //         break;
+    //     case "No":
+    //         ns.read_only = 1;
+    //         sf.read_only = 0;
+    //         break;
+    // }
 }
 
 
