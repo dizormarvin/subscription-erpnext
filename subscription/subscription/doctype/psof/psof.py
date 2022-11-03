@@ -242,6 +242,9 @@ class PSOF(Document):
 
 @frappe.whitelist()
 def get_programs(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
+    if filters.get("from_request"):
+        return frappe.db.get_list("PSOF", fields=["name", "subscription_contract"],
+                                  filters={"customer_name": filters.get("customer")}, order_by="creation desc", as_list=True)
     return frappe.db.get_list('PSOF Program', fields=['subscription_program', 'program_status'],
                               filters={'parent': filters.get("dname")}, order_by='subscription_program asc', as_list=True)
 

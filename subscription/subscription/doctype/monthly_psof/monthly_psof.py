@@ -51,7 +51,11 @@ class MonthlyPSOF(Document):
             `tabPSOF Program Bill` 
         WHERE 
             date_from 
-                BETWEEN '{start_date}' AND '{end_date}' AND active = 1
+                BETWEEN '{start_date}' AND '{end_date}' 
+            AND 
+            active = 1
+            AND
+            free_view = 0
                 """, as_dict=1)
 
         for i in program_bills:

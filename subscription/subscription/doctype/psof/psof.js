@@ -182,7 +182,7 @@ frappe.ui.form.on('PSOF', {
             }
         }
     },
-    onload: (frm) => {
+    refresh: (frm) => {
         if (!frm.doc.__unsaved) {
             const cur_programs = frm.doc.programs.map((e) => e.subscription_program).filter((z) => z)
             if (cur_programs.length > 0 && cur_programs) {
@@ -194,7 +194,7 @@ frappe.ui.form.on('PSOF', {
                 }
             })
         }
-             flatFeeToggler(frm)
+            flatFeeToggler(frm)
         }
         frm.set_query("subscription_contract", () => {
             return {

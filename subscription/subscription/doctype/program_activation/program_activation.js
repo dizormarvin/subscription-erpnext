@@ -14,11 +14,14 @@ var get_serials = function(frm, program){
 }
 
 frappe.ui.form.on("Program Activation", {
-	// refresh: function(frm) {
-
-	// },
-
 	onload: (frm,cdt,cdn) => {
+		frm.set_query('activation_req', () => {
+			return {
+				filters: {
+					workflow_state: 'Sent to Technical'
+				}
+			}
+		})
 		frm.set_query('psof', () => {
 			return {
 				filters: {
@@ -32,28 +35,18 @@ frappe.ui.form.on("Program Activation", {
 		})
 		cur_frm.refresh_fields(frm)
 	},
-	
+
+	activation_req: (frm) => {
+		frm.clear_table("included_programs")
+		frm.call("load_req")
+		frm.refresh_fields()
+		frm.refresh_field('included_programs')
+	},
+
 	psof: frm => {
 		frm.clear_table("included_programs")
-
-		frappe.db.get_list("PSOF Program", {
-			fields: ["subscription_program", "active", "psof", "name", "customer_name"],
-			filters: {
-				parent : frm.doc.psof
-			}
-		}).then(r => {
-			$.each(r, (i, r) => {
-				const {subscription_program, active, psof, name, customer_name} = r
-				frm.add_child("included_programs", {
-					program: subscription_program,
-					active: active,
-					psof: psof,
-					psof_program: name,
-					customer_name: customer_name
-				})
-			})
-			frm.refresh_field('included_programs');
-		})
+		frm.call("load_psof_programs")
+		frm.refresh_field('included_programs')
 	},
 
 	customer_name: (frm, cdt, cdn) => {
