@@ -14,6 +14,13 @@ from erpnext.accounts.party import get_party_account, get_due_date
 class MonthlyPSOF(Document):
     """Monthly Sales Generation"""
 
+    def on_submit(self):
+        self.check_if_from_cancelled_doc()
+
+    def check_if_from_cancelled_doc(self):
+        if self.get("amended_from"):
+            self.db_set("billing_generated", 0)
+
     def on_trash(self):
         mpsof = frappe.db.get_all("Monthly PSOF", pluck="name")
         frappe.db.delete("Monthly PSOF Program Bill", {"parent": ["not in", mpsof]})
@@ -31,7 +38,7 @@ class MonthlyPSOF(Document):
         start_date, end_date = frappe.db.get_value('Subscription Period', self.subscription_period,
                                                    ['start_date', 'end_date'])
         previous = frappe.db.get_value('Subscription Period', {
-            'start_date': start_date - dateutil.relativedelta.relativedelta(months=1)}, ['code'])
+            'start_date': start_date - dateutil.relativedelta.relativedelta(months=1)},['code'])
 
         self.billing_last_month = previous if previous else ""
 
@@ -165,10 +172,11 @@ class MonthlyPSOF(Document):
 
     @frappe.whitelist()
     def generate_monthly_bills(self):
-        if not self.bills_created:
-            for bill in self.get("bills"):
-                bill.make_sales_invoice()
-            frappe.msgprint("Invoice Successfully Generated")
-            self.db_set("bills_created", 1)
+        # if not self.bills_created:
+        for bill in self.get("bills"):
+            bill.make_sales_invoice()
+
+        frappe.msgprint("Invoice Successfully Generated")
+            # self.db_set("bills_created", 1)
 
 

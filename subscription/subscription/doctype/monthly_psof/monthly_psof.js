@@ -27,10 +27,10 @@ frappe.ui.form.on('Monthly PSOF', {
     },
 
     generate_bills_btn: (frm) => {
-        frm.add_custom_button(__("Generate Bills"), () => {
-            frm.call('generate_monthly_bills')
-            frm.refresh_fields();
-        });
+        // frm.add_custom_button(__("Generate Bills"), () => {
+        //     frm.call('generate_monthly_bills')
+        //     frm.refresh_fields();
+        // });
     },
 
     get_items_btn: (frm) => {

@@ -25,7 +25,8 @@
   "total_freight_rate",
   "amended_from",
   "is_generated",
-  "bills_created"
+  "bills_created",
+  "billing_generated"
  ],
  "fields": [
   {
@@ -158,11 +159,19 @@
    "hidden": 1,
    "label": "bills_created",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "billing_generated",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "billing_generated",
+   "read_only": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2022-08-12 15:14:06.197811",
+ "modified": "2022-11-08 17:02:38.592061",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Monthly PSOF",

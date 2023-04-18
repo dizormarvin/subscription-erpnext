@@ -8,14 +8,19 @@ import datetime
 from frappe.model.document import Document
 from erpnext.accounts.party import get_party_account, get_due_date
 import math
+from frappe.utils import flt
+from collections import Counter
+from functools import reduce
+from operator import add
 
 
 class MonthlyPSOFBilling(Document):
     """Monthly Billing Generation"""
-    
+
     def on_trash(self):
         self.status = 'Bills Deleted'
         linked_docs = self.count_linked_doc()
+        frappe.get_doc("Monthly PSOF", self.monthly_psof).db_set("billing_generated", 0)
 
         frappe.db.delete("Subscription Bill", {'subscription_period': self.name})
         frappe.db.delete("Subscription Bill Item", {'subscription_period': self.name})
@@ -25,7 +30,7 @@ class MonthlyPSOFBilling(Document):
         <b>{linked_docs['s']}</b> Subscription Bill/s<br>
         <b>{linked_docs['sb']}</b> Subscription Bill Item/s<br>
         <b>{linked_docs['mb']}</b> Monthly Billing Items/s<br>""")
-
+        frappe.db.commit()
 
     def count_linked_doc(self):
         subs_bill = frappe.db.count("Subscription Bill", {'subscription_period': self.name})
@@ -70,14 +75,36 @@ class MonthlyPSOFBilling(Document):
         return True
 
     def on_submit(self):
-        mpsof = frappe.db.sql("""SELECT * FROM `tabMonthly PSOF Bill`
-                    WHERE parent = %s""",
-                              (self.name), as_dict=1)
+        self.submit_billings()
+
+        frappe.msgprint(
+            msg='Bills successfully posted',
+            title='Success',
+            indicator='yellow',
+            raise_exception=False
+        )
+
+    def submit_billings(self):
+        bills = self.get_billings()
+        for bill in bills:
+            bill.submit()
+
+    def get_billings(self):
+        subscription_bill = frappe.db.get_list("Monthly PSOF Bill", {"parent": self.name}, "bill_no", pluck="bill_no")
+        return [frappe.get_doc("Subscription Bill", bill_no) for bill_no in subscription_bill]
+
+    @frappe.whitelist()
+    def create_sales_invoice(self):
+        bills = self.get_billings()
+        
+        for bill in bills:
+            bill.create_invoices()
+
+    def create_journal_entries(self):
+        mpsof = frappe.db.get_list("Monthly PSOF Bill", {"parent": self.name}, as_dict=1)
 
         for b in mpsof:
-            bill = frappe.db.sql("""SELECT * FROM `tabSubscription Bill`
-                        WHERE name = %s""",
-                                 (b.bill_no), as_dict=1)
+            bill = frappe.db.get_list("Subscription Bill", b.get("bill_no"), as_dict=1)
 
             for i in bill:
                 doc = frappe.new_doc("Journal Entry")
@@ -92,25 +119,24 @@ class MonthlyPSOFBilling(Document):
                 doc.user_remark = "Billing Entry For " + i.name
 
                 item = frappe.db.sql("""SELECT 
-                            i.*,
-                            p.msf_ar_account,
-                            p.decoder_ar_account,
-                            p.card_ar_account,
-                            p.promo_ar_account,
-                            p.freight_ar_account,
-                            p.msf_sales_account,
-                            p.decoder_sales_account,
-                            p.card_sales_account,
-                            p.promo_sales_account,
-                            p.freight_sales_account,
-                            p.vat_account                
-                            FROM 
-                            `tabSubscription Bill Item` i, `tabSubscription Program` p
-                            WHERE i.parent = %s
-                            AND i.subscription_program = p.name""", (i.name), as_dict=1)
+                                  i.*,
+                                  p.msf_ar_account,
+                                  p.decoder_ar_account,
+                                  p.card_ar_account,
+                                  p.promo_ar_account,
+                                  p.freight_ar_account,
+                                  p.msf_sales_account,
+                                  p.decoder_sales_account,
+                                  p.card_sales_account,
+                                  p.promo_sales_account,
+                                  p.freight_sales_account,
+                                  p.vat_account                
+                                  FROM 
+                                  `tabSubscription Bill Item` i, `tabSubscription Program` p
+                                  WHERE i.parent = %s
+                                  AND i.subscription_program = p.name""", (i.name), as_dict=1)
 
                 if self.check_accounts(item):
-
                     for d in item:
                         if d.subscription_rate >= 0:
                             doc.append('accounts', {
@@ -225,13 +251,6 @@ class MonthlyPSOFBilling(Document):
                     bills.save()
                     bills.submit()
 
-        frappe.msgprint(
-            msg='Bills successfully posted',
-            title='Success',
-            indicator='yellow',
-            raise_exception=False
-        )
-
     @frappe.whitelist()
     def create_bills(self):
         sales_bills = frappe.db.sql("""
@@ -244,7 +263,8 @@ class MonthlyPSOFBilling(Document):
                 p.end_date,
                 d.psof, 
                 d.parent,
-                d.account_manager 
+                d.account_manager, 
+                d.tax_category as tx
             FROM 
                 `tabMonthly PSOF` h, 
                 `tabMonthly PSOF Program Bill` d, 
@@ -259,21 +279,27 @@ class MonthlyPSOFBilling(Document):
                     d.customer, 
                     h.date, 
                     h.subscription_period, 
-                    p.exchange_rate; """, (self.monthly_psof), as_dict=1)
+                    p.exchange_rate; """, self.monthly_psof, as_dict=1)
 
-        period = frappe.get_doc("Subscription Period",
-                                self.subscription_period)
+        period = frappe.get_doc("Subscription Period", self.subscription_period)
 
         def vat_(rate):
-            return rate / 1.12
+            if not rate:
+                return 0
+            return flt(rate / 1.12)
+
+        def sum_(lists):
+            return flt(sum([flt(i) for i in lists]), 2)
 
         def round2(rate):
             return frappe.db.sql(f"SELECT ROUND({rate}, 2)")[0][0]
 
-        def round_convert(rate, exchange_rate=period.exchange_rate):
+        def round_convert(rate, exchange_rate=self.exchange_rate):
             return frappe.db.sql(f"SELECT ROUND({rate} * {exchange_rate}, 2)")[0][0]
 
         def get_difference(rate):
+            if not rate:
+                return 0
             return rate - vat_(rate)
 
         for bill in sales_bills:
@@ -283,9 +309,8 @@ class MonthlyPSOFBilling(Document):
             doc.customer_name = bill.customer_name
             doc.bill_date = bill.date
             doc.subscription_period = bill.subscription_period
-            doc.due_date = get_due_date(
-                doc.bill_date, "Customer", doc.customer)
-            doc.exchange_rate = period.exchange_rate
+            doc.due_date = get_due_date(doc.bill_date, "Customer", doc.customer)
+            doc.exchange_rate = self.exchange_rate
             doc.account_manager = bill.account_manager
             doc.assistant = customer_.billing_assistant
             doc.monthly_psof = bill.parent
@@ -327,8 +352,8 @@ class MonthlyPSOFBilling(Document):
                     "promo_diff": get_difference(round_convert(p.prate)),
                     "freight_diff": get_difference(round_convert(p.frate)),
                 }
-                allocations["total"] = round2(sum((allocations["decoder_rate"], allocations["promo_rate"],
-                                            allocations["card_rate"], allocations["freight_rate"])))
+                allocations["total"] = round2(sum((flt(allocations["decoder_rate"]), flt(allocations["promo_rate"]),
+                                                   flt(allocations["card_rate"]), flt(allocations["freight_rate"]))))
                 allocations["vat_inc"] = round2(allocations["msf"] - allocations["total"])
                 allocations["vat_ex"] = round2(vat_(allocations["vat_inc"]))
                 allocations["vat"] = round2(allocations["vat_ex"] * 0.12)
@@ -338,38 +363,33 @@ class MonthlyPSOFBilling(Document):
                 allocations["comp_diff"] = allocations["msf"] - allocations["comp_total"]
                 allocations["comp_vat_ex"] = allocations["vat_ex"] + allocations["comp_diff"]
 
-                doc.append('items', {
-                    'created_from': self.monthly_psof,
-                    'customer': doc.customer,
-                    'subscription_period': doc.subscription_period,
-                    'bill_date': doc.bill_date,
-                    "subscription_program": p.program,
-                    "subs_fee": p.sfee,
-                    "subscription_fee":  allocations['msf'],
-                    "subscription_rate_inc": allocations["vat_inc"],
-                    "subscription_rate_ex": allocations["vat_ex"],
-                    "vat": allocations["vat"],
-                    "decoder_rate":  vat_(allocations["decoder_rate"]),
-                    "card_rate":  vat_(allocations["card_rate"]),
-                    "promo_rate":  vat_(allocations["promo_rate"]),
-                    "freight_rate": vat_(allocations["freight_rate"]),
-                    "monthly_psof_no": doc.monthly_psof,
-                    "psof_no": p.psof,
-                    'total_alloc':  vat_(allocations["total"]),
-                    'total_alloc_vat':  allocations["total"],
-                    "decoder_rate_vat":  allocations["decoder_rate"],
-                    "card_rate_vat":  allocations["card_rate"],
-                    "promo_rate_vat":  allocations["promo_rate"],
-                    "freight_rate_vat":  allocations["freight_rate"],
-                    'card_diff':  allocations["card_diff"],
-                    'decoder_diff':  allocations["decoder_diff"],
-                    'freight_diff':  allocations["freight_diff"],
-                    'promo_diff':  allocations["promo_diff"],
-                    'total_diff':  get_difference(allocations["total"]),
-                    'computed_total': allocations["comp_total"],
-                    'computed_diff': allocations["comp_diff"],
-                    'computed_vat_ex': allocations["comp_vat_ex"]
-                })
+                bill_totals = {'created_from': self.monthly_psof, 'customer': doc.customer,
+                               'subscription_period': doc.subscription_period, 'bill_date': doc.bill_date,
+                               "subscription_program": p.program, "subs_fee": p.sfee,
+                               "subscription_fee": allocations['msf'], "subscription_rate_inc": allocations["vat_inc"],
+                               "subscription_rate_ex": allocations["vat_ex"], "vat": allocations["vat"],
+                               "decoder_rate": vat_(allocations["decoder_rate"]),
+                               "card_rate": vat_(allocations["card_rate"]),
+                               "promo_rate": vat_(allocations["promo_rate"]),
+                               "freight_rate": vat_(allocations["freight_rate"]), "monthly_psof_no": doc.monthly_psof,
+                               "psof_no": p.psof, 'total_alloc': vat_(allocations["total"]),
+                               'total_alloc_vat': allocations["total"], "decoder_rate_vat": allocations["decoder_rate"],
+                               "card_rate_vat": allocations["card_rate"], "promo_rate_vat": allocations["promo_rate"],
+                               "freight_rate_vat": allocations["freight_rate"], 'card_diff': allocations["card_diff"],
+                               'decoder_diff': allocations["decoder_diff"], 'freight_diff': allocations["freight_diff"],
+                               'promo_diff': allocations["promo_diff"],
+                               'total_diff': get_difference(allocations["total"]),
+                               'computed_total': allocations["comp_total"], 'computed_diff': allocations["comp_diff"],
+                               'computed_vat_ex': allocations["comp_vat_ex"], "billing_currency": "PHP",
+                               "rounding_diff": [],
+                               'tax_category': bill.get('tx')}
+
+                for i in ["decoder", "card", "promo", "freight"]:
+                    bill_totals["rounding_diff"].append(flt((bill_totals.get(f"{i}_rate_vat") - (bill_totals.get(f"{i}_rate_vat") / 1.12)), 2) - bill_totals.get(f"{i}_diff"))
+
+                bill_totals["rounding_diff"] = flt(sum(bill_totals["rounding_diff"]), 2)
+                doc.append('items', bill_totals)
+
                 totals["t_msf"] += allocations["comp_total"]
                 totals["t_diff"] += allocations["comp_diff"]
                 totals["t_vat_ex"] += allocations["comp_vat_ex"]
@@ -377,8 +397,6 @@ class MonthlyPSOFBilling(Document):
 
             doc.flags.ignore_mandatory = True
             doc.insert()
-
-            "Add Details to Bills"
 
             totals["usd_allocation"] = sum([totals['decoder'], totals['promo'], totals['freight'], totals['card']])
             totals["allocation"] = sum([totals['php_drate'], totals['php_prate'], totals['php_frate'], totals['php_crate']])
@@ -389,12 +407,19 @@ class MonthlyPSOFBilling(Document):
             totals["comp_diff"] = totals["php_msf"] - totals["comp_total"]
             totals["comp_vat_ex"] = totals["vat_ex"] + totals["comp_diff"]
 
+
+            _totals_usd = reduce(add, (map(Counter, [
+                {"drate": i.get("drate"), "prate": i.get("prate"), "frate": i.get("frate"),
+              "crate": i.get("crate")} for i in sbill_items])))
+
             self.append('billings', {
+                'tax_category': bill.get('tx'),
+                "billing_currency": "PHP",
                 'customer_name': customer_.customer_name,
                 'subscription_period': period.name,
                 'billing_date': period.end_date,
                 'currency': 'USD',
-                'exchange_rate': period.exchange_rate,
+                'exchange_rate': self.exchange_rate,
                 "account_manager": doc.account_manager or "",
                 "assistant": doc.assistant,
                 "customer": doc.customer,
@@ -428,9 +453,26 @@ class MonthlyPSOFBilling(Document):
                 "computed_tamount": totals["t_msf"],
                 "computed_tdiff": totals["t_diff"],
                 "computed_vat_ex": totals["t_vat_ex"] + totals["t_diff"],
-                "total_vat_ex": round2(vat_(totals["allocation"])),
-                "total_vat_diff": totals["allocation"] - round2(vat_(totals["allocation"]))
+                "total_vat_ex": sum_(vat_(totals[i]) for i in ["decoder", "promo", "freight", "card"]),
+                "total_vat_diff": totals["allocation"] - round2(vat_(totals["allocation"])),
+                "t_drate_": _totals_usd.get("drate"),
+                "t_prate_": _totals_usd.get("prate"),
+                "t_frate_": _totals_usd.get("frate"),
+                "t_crate_": _totals_usd.get("crate"),
+                "t_rate_": sum(_totals_usd.values()),
+                "v_drate": get_difference(_totals_usd.get("drate")),
+                "v_prate": get_difference(_totals_usd.get("prate")),
+                "v_frate": get_difference(_totals_usd.get("frate")),
+                "v_crate": get_difference(_totals_usd.get("crate")),
+                "v_rate": get_difference(sum(_totals_usd.values())),
+                "x_drate": vat_(totals["php_drate"]),
+                "x_prate": vat_(totals["php_prate"]),
+                "x_frate": vat_(totals["php_frate"]),
+                "x_crate": vat_(totals["php_crate"]),
+                "x_rate": vat_(totals["allocation"]),
             })
+            
+        self.create_sales_invoice()
 
         frappe.msgprint(
             msg='Bill successfully generated',
@@ -438,5 +480,6 @@ class MonthlyPSOFBilling(Document):
             indicator='yellow',
             raise_exception=False
         )
-
-        frappe.db.set(self, 'status', 'Bills Generated')
+        self.save()
+        self.db_set("generated", 1)
+        frappe.db.set_value("Monthly PSOF", self.get("monthly_psof"), "billing_generated", 1)

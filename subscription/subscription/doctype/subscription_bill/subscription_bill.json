@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "autoname": "naming_series:",
  "creation": "2021-06-19 09:42:38.331208",
  "doctype": "DocType",
@@ -7,7 +8,9 @@
  "field_order": [
   "naming_series",
   "bill_date",
+  "psof",
   "customer",
+  "customer_name",
   "account_manager",
   "assistant",
   "column_break_4",
@@ -15,6 +18,7 @@
   "subscription_period",
   "journal_reference",
   "exchange_rate",
+  "tax_category",
   "section_break_8",
   "items",
   "amended_from"
@@ -71,9 +75,9 @@
   {
    "fetch_from": "subscription_period.exchange_rate",
    "fieldname": "exchange_rate",
-   "fieldtype": "Float",
+   "fieldtype": "Currency",
    "label": "Exchange Rate",
-   "precision": "4"
+   "precision": "3"
   },
   {
    "fieldname": "amended_from",
@@ -95,10 +99,35 @@
    "fieldtype": "Link",
    "label": "Assistant",
    "options": "Billing Assistant"
+  },
+  {
+   "fetch_from": "customer.tax_category",
+   "fetch_if_empty": 1,
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fetch_if_empty": 1,
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "psof",
+   "fieldtype": "Link",
+   "label": "PSOF",
+   "options": "PSOF",
+   "read_only": 1
   }
  ],
  "is_submittable": 1,
- "modified": "2022-01-11 11:34:34.724457",
+ "links": [],
+ "modified": "2022-11-23 15:30:31.530417",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Bill",

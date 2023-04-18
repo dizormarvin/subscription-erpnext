@@ -74,13 +74,13 @@ def get_columns():
 
 def get_data(filters):
 	monthly_sales = get_sales_data(filters)
-	customer_data = compare_billing_sales(monthly_sales)
+	customer_data = compare_billing_sales(monthly_sales, filters)
 	return customer_data
 
 
-def compare_billing_sales(sales):
+def compare_billing_sales(sales, filters):
 	parent_customers = get_parent_customer(sales)
-	customer_data = populate_customer_data(parent_customers, sales)
+	customer_data = populate_customer_data(parent_customers, sales, filters)
 
 	return customer_data
 
@@ -97,16 +97,24 @@ def get_parent_customer(sales):
 	return [dict(t) for t in {tuple(d.items()) for d in x}]
 
 
-def populate_customer_data(parent_customers, sales):
+def populate_customer_data(parent_customers, sales, filters):
 	customer_data = []
 
 	for customer in parent_customers:
 		cur_cd = customer.copy()
 		cur_cd["sales_now"] = sum([sale.get("subscription_fee") for sale in sales if customer.get("customer") == sale.get("customer_name")])
+		cur_cd["bill_last"] = sum([get_billing_data(sale).get("subs_fee") for sale in sales if customer.get("customer") == sale.get("customer_name")])
+		cur_cd["variance"] = flt(cur_cd.get("bill_last") - cur_cd.get("sales_now"))
+
+		if filters.get('has_variance') and not cur_cd.get('variance'):
+			continue
+
 		customer_data.append(cur_cd)
+
 		for sale in sales:
 			if customer.get("customer") == sale.get("customer_name"):
 				bill_data = get_billing_data(sale)
+
 				customer_data.append({
 					'customer': sale.get("subscription_program"),
 					'parent_customer': customer.get("customer"),
@@ -165,16 +173,15 @@ def get_billing_data(sales):
 		from frappe.utils import add_months
 		return add_months(end, -1) >= target >= add_months(start, -1)
 
-	bills = frappe.db.get_list("Subscription Bill Item", filters={
+	bill = frappe.db.get_value("Subscription Bill Item", {
 		"customer_name": sales.get("customer_name"),
 		"subscription_program": sales.get("subscription_program"),
-		"docstatus": 0,
-	}, fields=["customer_name", "parent", "subs_fee", "customer", "bill_date"])
+		"docstatus": ['!=', 2],
+		"monthly_psof_no": sales.get("parent"),
+	}, ["customer_name", "parent", "subs_fee", "customer", "bill_date"], as_dict=1)
 
-	for bill in bills:
-		if date_between(bill.get("bill_date"), sales.get("date_from"), sales.get("date_to")):
-			bill_data['parent'] = bill.get('parent')
-			bill_data['subs_fee'] = bill.get('subs_fee')
+	bill_data['parent'] = bill.get('parent')
+	bill_data['subs_fee'] = bill.get('subs_fee')
 
 	return bill_data
 

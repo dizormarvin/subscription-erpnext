@@ -11,7 +11,6 @@ class MonthlyPSOFProgramBill(Document):
 			"doctype": "Sales Invoice",
 			"customer": self.get("customer"),
 			"due_date": self.get("contract_end"),
-			"taxes_and_charges": "Philippines Tax - CB",
 			"m_psof": self.parent,
 			"date_from": self.get("date_from"),
 			"date_to": self.get("date_to"),
@@ -30,8 +29,7 @@ class MonthlyPSOFProgramBill(Document):
 			"uom": "Nos",
 			"conversion_factor": 1,
 			"rate": self.get("subscription_rate"),
-			'income_account': frappe.get_doc("Subscription Program", self.get("subscription_program")).get(
-				"msf_sales_account")
+			'income_account': frappe.get_doc("Subscription Program", self.get("subscription_program")).get_sales_account()
 		})
 
 		for rate in ("decoder", "card", "promo", "freight"):

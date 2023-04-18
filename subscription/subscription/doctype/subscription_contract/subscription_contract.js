@@ -39,6 +39,7 @@ frappe.ui.form.on('Subscription Contract',  {
 			}
 
 			if (frm.doc.bill_expired === 1 && frm.doc.status === "Active") {
+				/*
 				frm.add_custom_button("Supersede Dummy Contract", () => {
 					frappe.call({
 						method: "subscription.subscription.doctype.psof.psof.supersede_dummy",
@@ -52,6 +53,7 @@ frappe.ui.form.on('Subscription Contract',  {
 						}
 					})
 				}, 'Contract Options')
+				*/
 
 				frm.add_custom_button("Supersede Dummy Contract - Cableboss", () => {
 					frappe.call({
@@ -67,6 +69,7 @@ frappe.ui.form.on('Subscription Contract',  {
 						}
 					})
 				}, 'Contract Options')
+				
 			} else if (frm.doc.bill_expired === 1 && frm.doc.status === "Expired") {
 				frm.add_custom_button("Extend Dummy Contract", () => {
 					frappe.call({

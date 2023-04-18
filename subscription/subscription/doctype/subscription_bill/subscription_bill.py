@@ -10,7 +10,6 @@ from frappe.utils import now, today
 
 
 class SubscriptionBill(Document):
-
     def autoname(self):
         period = frappe.get_doc("Subscription Period", self.subscription_period)
         count = frappe.db.count('Subscription Bill', {'subscription_period': period.name}) + 1
@@ -137,3 +136,15 @@ class SubscriptionBill(Document):
                     
             doc.insert()
             self.journal_reference = doc.name
+
+    def after_insert(self):
+        for item in self.get("items"):
+            item.create_invoice()
+
+    def on_submit(self):
+        self.submit_bill_item_invoice()
+
+    def submit_bill_item_invoice(self):
+        invoices = frappe.db.get_list("Sales Invoice", {"subscription_bill": self.name}, pluck="name")
+        for invoice in invoices:
+            frappe.get_doc("Sales Invoice", invoice).submit()

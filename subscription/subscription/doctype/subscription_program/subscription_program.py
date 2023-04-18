@@ -26,3 +26,11 @@ class SubscriptionProgram(Document):
 			"vat_account": self.get("vat_account") if item == self.name else None
 		})
 		self.save()
+
+	def get_sales_account(self):
+		sales_account = frappe.db.get_value("Subscription Program Accounting Defaults", {"parent": self.name, "item_group": "CHANNELS"}, "sales_account")
+
+		if not sales_account:
+			frappe.throw(f"{self.name} doest have a sales account")
+			
+		return sales_account

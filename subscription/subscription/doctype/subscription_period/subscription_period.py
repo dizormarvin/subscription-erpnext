@@ -16,8 +16,12 @@ class SubscriptionPeriod(Document):
 		self.check_used_period()
 
 	def check_date(self):
+		period_exists = frappe.db.exists("Subscription Period", {"start_date": self.start_date, "end_date": self.end_date})
 		if self.start_date > self.end_date:
 			frappe.throw("Please check subscription period dates")
+
+		if period_exists:
+			frappe.throw(f"Subscription Period from {self.get('start_date')} to {self.get('end_date')} already exists as {period_exists}")
 
 	def check_used_period(self):
 		if frappe.db.exists("Monthly PSOF", {"subscription_period": self.name, "docstatus": 1}):
