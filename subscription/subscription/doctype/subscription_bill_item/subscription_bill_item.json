@@ -412,7 +412,6 @@
   {
    "fieldname": "rounding_diff",
    "fieldtype": "Currency",
-   "hidden": 1,
    "label": "Rounding Difference"
   },
   {
@@ -428,7 +427,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2022-11-21 11:53:06.261788",
+ "modified": "2023-04-28 15:29:10.251028",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Bill Item",

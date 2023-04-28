@@ -28,6 +28,10 @@ def execute(filters=None):
 	return columns, data
 
 
+def get_subs_period(mpsof):
+	return frappe.db.get_value("Monthly PSOF", mpsof, "subscription_period")
+
+
 def _get_columns(filters=None):
 	m1 = filters.get("mpsof_1")
 	m2 = filters.get("mpsof_2")
@@ -42,17 +46,17 @@ def _get_columns(filters=None):
 		},
 		{
 			"fieldname": "m1_psof",
-			"label": _(f'{m1} PSOF'),
+			"label": _(f'{m1} ({get_subs_period(m1)})'),
 			"fieldtype": "Link",
 			"options": 'PSOF',
-			"width": 120,
+			"width": 250,
 		},
 		{
 			"fieldname": "m2_psof",
-			"label": _(f'{m2} PSOF'),
+			"label": _(f'{m2} ({get_subs_period(m2)})'),
 			"fieldtype": "Link",
 			"options": 'PSOF',
-			"width": 120,
+			"width": 250,
 		},
 		{
 			"fieldname": "m1_fee",

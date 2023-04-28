@@ -26,6 +26,8 @@ class MonthlyPSOFBilling(Document):
         frappe.db.delete("Subscription Bill Item", {'subscription_period': self.name})
         frappe.db.delete("Monthly PSOF Bill", {'subscription_period': self.name})
 
+        frappe.db.delete("Sales Invoice", {'subs_period': self.name})
+
         frappe.msgprint(msg=f"""Deleting the following documents:<br>
         <b>{linked_docs['s']}</b> Subscription Bill/s<br>
         <b>{linked_docs['sb']}</b> Subscription Bill Item/s<br>
@@ -52,6 +54,23 @@ class MonthlyPSOFBilling(Document):
 
     def on_cancel(self):
         frappe.db.set(self, 'status', 'Cancelled')
+        # sb = frappe.get_doc("Subscription Bill", {'subscription_period': self.name})
+        #sb.cancel()
+
+        frappe.db.sql("""update `tabSubscription Bill` set  docstatus=2
+                                          WHERE subscription_period = %s """, (self.name))
+
+        frappe.db.sql("""update `tabSubscription Bill Item` set  docstatus=2
+                                          WHERE parent in ( select name from `tabSubscription Bill` where subscription_period= %s )""", (self.name))
+
+        linked_docs = frappe.get_all("Sales Invoice", filters={"subs_period": self.name})
+        for linked_doc in linked_docs:
+            linked_doc_obj = frappe.get_doc("Sales Invoice", linked_doc.name)
+            linked_doc_obj.cancel()
+
+        #si = frappe.get_doc("Sales Invoice", {'subs_period': self.name})
+        #si.cancel()
+
 
     def check_accounts(self, items):
         for p in items:
@@ -75,14 +94,22 @@ class MonthlyPSOFBilling(Document):
         return True
 
     def on_submit(self):
-        self.submit_billings()
+        if self.billings:
+            self.submit_billings()
 
-        frappe.msgprint(
-            msg='Bills successfully posted',
-            title='Success',
-            indicator='yellow',
-            raise_exception=False
-        )
+            frappe.msgprint(
+                msg='Bills successfully posted',
+                title='Success',
+                indicator='yellow',
+                raise_exception=False
+            )
+        else:
+            frappe.msgprint(
+                msg='Billing should create first Before Submission',
+                title='Billing Not Created',
+                indicator='red',
+                raise_exception=True
+            )
 
     def submit_billings(self):
         bills = self.get_billings()

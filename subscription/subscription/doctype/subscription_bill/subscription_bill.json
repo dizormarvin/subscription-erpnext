@@ -15,6 +15,7 @@
   "assistant",
   "column_break_4",
   "due_date",
+  "posting_date",
   "subscription_period",
   "journal_reference",
   "exchange_rate",
@@ -123,11 +124,16 @@
    "label": "PSOF",
    "options": "PSOF",
    "read_only": 1
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2022-11-23 15:30:31.530417",
+ "modified": "2023-04-19 17:19:54.633379",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Bill",

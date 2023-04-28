@@ -9,6 +9,7 @@ frappe.ui.form.on('Monthly PSOF Billing', {
 
 		if (!frm.doc.__islocal && !frm.doc.generated){
 			frm.add_custom_button(__("Create Billings"), function() {
+				console.log('hey')
 				cur_frm.call('create_bills', function(r){});
 				cur_frm.refresh_fields(frm);
 			});

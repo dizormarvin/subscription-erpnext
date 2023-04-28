@@ -12,7 +12,10 @@
       }
       r[key].push(a);
       return r;
-}, {})) %}
+}, {}))
+%}
+
+{% var monthHead = frappe.query_report.columns.slice(1, 3).map((e) => frappe.utils.to_title_case(e.label.split(" ")[1].replace("(", ""))) %}
 
 <table class="table">
     <thead>
@@ -27,8 +30,8 @@
         <tr>
             <th class="top-bordered">BILLING</th>
             <th class="top-bordered">SALES</th>
-            <th class="top-bordered">{{ moment(filters.mpsof_1, "MM-YYYY-DD").format("MMMM") }}</th>
-            <th class="top-bordered">{{ moment(filters.mpsof_2, "MM-YYYY-DD").format("MMMM") }}</th>
+            <th class="top-bordered">{{ monthHead[0] }}</th>
+            <th class="top-bordered">{{ monthHead[1] }}</th>
             <th class="top-bordered"></th>
         </tr>
     </thead>
@@ -106,11 +109,15 @@
     }
 
     .print-format img {
-        max-width: 65%
+        max-width: 65%;
     }
 
     .bold {
         font-weight: bold;
+    }
+
+    .print-format td, .print-format th {
+        padding: 1px !important;
     }
 </style>
 

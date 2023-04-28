@@ -1,191 +1,219 @@
-# Copyright (c) 2013, ossphin and contributors
+# Copyright (c) 2023, ossphin and contributors
 # For license information, please see license.txt
 
 from __future__ import unicode_literals
 import frappe
-from  frappe import _
+from frappe import _
 from frappe.utils import add_months, getdate, nowdate, flt
+import pandas as pd
 
 
-def execute(filters):
-	data = get_data(filters)
-	columns = get_columns()
-	columns = add_col(columns, filters)
-	return columns, data
+def execute(filters=None):
+    if not (filters.get('mpsof_1') and filters.get('mpsof_2')):
+        return [], []
+
+    columns = _get_columns(filters=filters)
+    data = process_data(_get_data(filters, columns), filters)
+
+    return columns, data
 
 
-def add_col(cols, filters):
-	new_col = cols
-	bill_month = 'Billing'
-	sales_month = 'Sales'
-
-	if filters.get("sub_period"):
-		start = frappe.db.get_value("Subscription Period", filters.get("sub_period"), ['start_date'])
-		bill_month = f'{format(getdate(add_months(start, -1)), "%B")} {bill_month}'
-		sales_month = f'{format(getdate(start), "%B")} {sales_month}'
-
-	new_col.append({
-		"fieldname": "bill_last",
-		"label": _(f'{bill_month}'),
-		"fieldtype": "Currency",
-		"width": 120,
-	})
-
-	new_col.append({
-		"fieldname": "sales_now",
-		"label": _(f'{sales_month}'),
-		"fieldtype": "Currency",
-		"width": 120,
-	})
-
-	new_col.append({
-		"fieldname": "variance",
-		"label": _('Variance'),
-		"fieldtype": "Currency",
-		"width": 100,
-	})
-
-	return new_col
+def get_subs_period(mpsof):
+    return frappe.db.get_value("Monthly PSOF", mpsof, "subscription_period")
 
 
-def get_columns():
-	return [
-		{
-			"fieldname": "customer",
-			"label": _("System Name/Program Name"),
-			"fieldtype": "data",
-			"width": 300,
-		},
-		{
-			"fieldname": "billing_no",
-			"label": _("Monthly Billing"),
-			"fieldtype": "Link",
-			"options": "Monthly PSOF Billing",
-			"width": 130,
-		},
-		{
-			"fieldname": "sales_no",
-			"label": _("Monthly Sales"),
-			"fieldtype": "Link",
-			"options": "Monthly PSOF",
-			"width": 130,
-		}]
+def process_data(x, filters=None):
+    data = x.copy()
+    [d.update({'variance': flt(d.get('m1_fee', 0) - d.get('m2_fee', 0))}) for d in data if d.get('indent') == 2]
+    pd_df = pd.DataFrame(data)
+
+    if filters.get('has_variance'):
+        data = [d for d in data if d.get('variance')]
+        has_variance = pd_df[pd_df['variance'] == 0].index
+        pd_df.drop(has_variance, inplace=True)
+    else:
+        data = [d for d in data if d.get('variance') == 0]
+        no_variance = pd_df[pd_df['variance'] != 0].index
+        pd_df.drop(no_variance, inplace=True)
+
+    if len(data):
+        for i, d in enumerate(data):
+            if d.get('parent'):
+                data[i]['m1_fee'] = sum(
+                    [z.get('m1_fee') for z in data if z.get('child_program') == d.get('parent_customer')])
+                data[i]['m2_fee'] = sum(
+                    [z.get('m2_fee') for z in data if z.get('child_program') == d.get('parent_customer')])
+                data[i]['variance'] = data[i]['m1_fee'] - data[i]['m2_fee']
+        data.append({
+            'parent_customer': 'Total',
+            'm1_fee': pd_df.loc[pd_df['indent'] == 2, 'm1_fee'].sum(),
+            'm2_fee': pd_df.loc[pd_df['indent'] == 2, 'm2_fee'].sum(),
+            'variance': pd_df.loc[pd_df['indent'] == 2, 'variance'].sum()
+        })
+
+    return data
 
 
-def get_data(filters):
-	monthly_sales = get_sales_data(filters)
-	customer_data = compare_billing_sales(monthly_sales, filters)
-	return customer_data
+def _get_columns(filters=None):
+    m1 = filters.get("mpsof_1")
+    m2 = filters.get("mpsof_2")
+
+    columns = [
+        {
+            "fieldname": "parent_customer",
+            "label": _('Cable System/Program Name'),
+            "fieldtype": "Link",
+            "options": 'Subscription',
+            "width": 350,
+        },
+        {
+            "fieldname": "m1_psof",
+            "label": _(f'{m1} ({get_subs_period(m1)})'),
+            "fieldtype": "Link",
+            "options": 'PSOF',
+            "width": 250,
+        },
+        {
+            "fieldname": "m2_psof",
+            "label": _(f'{m2} ({get_subs_period(m2)})'),
+            "fieldtype": "Link",
+            "options": 'PSOF',
+            "width": 250,
+        },
+        {
+            "fieldname": "m1_fee",
+            "label": _(f'{m1}'),
+            "fieldtype": "Currency",
+            "width": 120,
+        },
+        {
+            "fieldname": "m2_fee",
+            "label": _(f'{m2}'),
+            "fieldtype": "Currency",
+            "width": 100,
+        },
+        {
+            "fieldname": "variance",
+            "label": _(f'Variance'),
+            "fieldtype": "Currency",
+            "width": 100,
+        }
+    ]
+
+    return columns
 
 
-def compare_billing_sales(sales, filters):
-	parent_customers = get_parent_customer(sales)
-	customer_data = populate_customer_data(parent_customers, sales, filters)
+def _get_data(filters=None, columns=None):
+    mpsof, mp1, mp2 = [frappe.qb.DocType('Monthly PSOF Program Bill'), filters.get('mpsof_1'), filters.get('mpsof_2')]
+    result = []
 
-	return customer_data
+    parent_program = (
+        frappe.qb.from_(mpsof)
+        .select(mpsof.customer_name.as_('customer')).distinct()
+        .where(mpsof.parent.isin([mp1, mp2]))
+    ).run(as_dict=True)
+
+    for parent in parent_program:
+        p_data = {
+            'parent': 1,
+            'parent_customer': parent.customer,
+            'child_program': None,
+            'm1_psof': None,
+            'm2_psof': None,
+            'm1_fee': mpsof_total(mp1, parent.get('customer')),
+            'm2_fee': mpsof_total(mp2, parent.get('customer')),
+            'variance': 0,
+            'indent': 0,
+            'has_value': False,
+        }
+        p_data['variance'] = flt(p_data.get('m1_fee') - p_data.get('m2_fee'))
+        c_data = []
+
+        for i, f in enumerate((mp1, mp2)):
+            prefix = 'm1_' if not i else 'm2_'
+
+            q = (
+                frappe.qb.from_(mpsof)
+                .select(
+                    (mpsof.subscription_program).as_(prefix + 'program'),
+                    (mpsof.psof).as_(prefix + 'psof'),
+                    (mpsof.subscription_fee).as_(prefix + 'fee')
+                )
+            )
+
+            for k, v in filters.items():
+                if k in ('mpsof_1', 'mpsof_2', 'has_variance'):
+                    continue
+                elif k == 'date_from':
+                    q = q.where(mpsof[k] >= v)
+                elif k == 'date_to':
+                    q = q.where(mpsof[k] <= v)
+                else:
+                    q = q.where(mpsof[k] == v)
+
+            q = q.where((mpsof.parent == f) & (mpsof.customer_name == parent.get('customer'))).run(as_dict=1)
+
+            c_data.append(q)
+
+        n_data = []
+        if not len(c_data[0]) and not len(c_data[1]):
+            p_data.clear()
+            continue
+        elif len(c_data[0]) and len(c_data[1]):
+            for i1 in c_data[0]:
+                for i2 in c_data[1]:
+                    if i2.get("m2_psof") == i1.get("m1_psof") and i2.get("m2_program") == i1.get("m1_program"):
+                        i1.update(i2)
+                        c_data[1].remove(i2)
+                        i1.update({
+                            'parent_customer': i1.get('m1_program'),
+                            'child_program': parent.customer,
+                            'indent': 2,
+                        })
+            if len(c_data[1]):
+                for i2 in c_data[1]:
+                    x = i2
+                    x.update({
+                        'parent_customer': i2.get('m2_program'),
+                        'child_program': parent.customer,
+                        'indent': 2
+                    })
+                    c_data[0].append(i2)
+                    c_data[1].remove(i2)
+
+            n_data = c_data[0]
+        elif len(c_data[0]):
+            n_data = c_data[0]
+            p_data['m2_fee'] = 0
+            p_data['variance'] = p_data.get('m1_fee') - 0
+        elif len(c_data[1]):
+            n_data = c_data[1]
+            p_data['m1_fee'] = 0
+            p_data['variance'] = 0 - p_data.get('m2_fee')
+        result.append(p_data)
+
+        for i in n_data:
+            if i.get("m2_psof") == i.get("m1_psof") and i.get("m2_program") == i.get("m1_program"):
+                i.update({
+                    'variance': flt(i.get('m1_fee') or 0 - i.get('m2_fee') or 0) + 500,
+                })
+            i.update({
+                'parent_customer': i.get('m1_program') or i.get('m2_program'),
+                'child_program': parent.customer,
+                'indent': 2,
+                'm1_fee': i.get('m1_fee') or 0,
+                'm2_fee': i.get('m2_fee') or 0,
+                'variance': flt(i.get('m1_fee') or 0 - i.get('m2_fee') or 0),
+            })
+
+        result += n_data
+    return result
 
 
-def get_parent_customer(sales):
-	x = [{
-		"customer": sale.get("customer_name"),
-		"parent_customer": None,
-		"indent": 0,
-		"has_value": False,
-		"sales_now": 0
-	}
-		for sale in sales]
-	return [dict(t) for t in {tuple(d.items()) for d in x}]
+def mpsof_total(mpsof, customer=None):
+    f = {"parent": mpsof}
 
+    if customer:
+        f["customer_name"] = customer
 
-def populate_customer_data(parent_customers, sales, filters):
-	customer_data = []
-
-	for customer in parent_customers:
-		cur_cd = customer.copy()
-		cur_cd["sales_now"] = sum([sale.get("subscription_fee") for sale in sales if customer.get("customer") == sale.get("customer_name")])
-		cur_cd["bill_last"] = sum([get_billing_data(sale).get("subs_fee") for sale in sales if customer.get("customer") == sale.get("customer_name")])
-		cur_cd["variance"] = flt(cur_cd.get("bill_last") - cur_cd.get("sales_now"))
-
-		if filters.get('has_variance') and not cur_cd.get('variance'):
-			continue
-
-		customer_data.append(cur_cd)
-
-		for sale in sales:
-			if customer.get("customer") == sale.get("customer_name"):
-				bill_data = get_billing_data(sale)
-
-				customer_data.append({
-					'customer': sale.get("subscription_program"),
-					'parent_customer': customer.get("customer"),
-					'indent': 1,
-					'has_value': True,
-					'sales_no': sale.get("parent"),
-					'sales_now': sale.get('subscription_fee'),
-					'bill_last': bill_data.get('subs_fee'),
-					'billing_no': bill_data.get('parent'),
-					'variance': flt(sale.get('subscription_fee') - bill_data.get('subs_fee'))
-				})
-
-	return customer_data
-
-
-def get_sales_data(filters):
-	sales_filter = ["WHERE MP.docstatus = 1"]
-
-	if filters.get("sub_period"):
-		sales_filter.append(f"MP.subscription_period = '{filters.get('sub_period')}'")
-	if filters.get("mpsof"):
-		sales_filter.append(f"MP.name = '{filters.get('mpsof')}'")
-	if filters.get("customer"):
-		sales_filter.append(f"MPPB.customer = '{filters.get('customer')}'")
-	if filters.get("program"):
-		sales_filter.append(f"MPPB.subscription_program = '{filters.get('program')}'")
-
-	sales = frappe.db.sql(
-		f"""SELECT
-				MPPB.customer,
-				MPPB.customer_name,
-				MP.subscription_period,
-				MPPB.psof,
-				MPPB.parent,
-				MPPB.subscription_program,
-				MPPB.psof_program_bill,
-				MPPB.date_from,
-				MPPB.date_to,
-				MPPB.subscription_fee
-			FROM `tabMonthly PSOF` as MP
-			LEFT JOIN `tabMonthly PSOF Program Bill` as MPPB on MPPB.parent = MP.name
-				{' AND '.join(sales_filter)}
-			GROUP BY
-				MP.name, MPPB.customer, MPPB.subscription_program;""", as_dict=1
-	)
-	return sales
-
-
-def get_billing_data(sales):
-	bill_data = {
-		'parent': None,
-		'subs_fee': 0
-	}
-
-	def date_between(target, start, end):
-		from frappe.utils import add_months
-		return add_months(end, -1) >= target >= add_months(start, -1)
-
-	bill = frappe.db.get_value("Subscription Bill Item", {
-		"customer_name": sales.get("customer_name"),
-		"subscription_program": sales.get("subscription_program"),
-		"docstatus": ['!=', 2],
-		"monthly_psof_no": sales.get("parent"),
-	}, ["customer_name", "parent", "subs_fee", "customer", "bill_date"], as_dict=1)
-
-	bill_data['parent'] = bill.get('parent')
-	bill_data['subs_fee'] = bill.get('subs_fee')
-
-	return bill_data
-
-
-def valid_sales_billing_data(sale, bill):
-	return (sales.get("date_from") >= bill.get("bill_date") >= sales.get("date_to")) and (
-			bill.get("customer") == sale.get("customer") and bill.get("subscription_program") == sale.get("subscription_program"))
+    return flt(frappe.db.get_value("Monthly PSOF Program Bill", f, "sum(subscription_fee)")) or 0

@@ -10,7 +10,9 @@ from erpnext.controllers.accounts_controller import get_taxes_and_charges
 class SubscriptionBillItem(Document):
 	def get_subs_rate(self):
 		if self.get("tax_category") == "Vat Inclusive":
+			#ossphinc 04282023
 			return flt(self.get("subscription_rate_ex") + self.get("rounding_diff"))
+			#return flt(self.get("subscription_rate_ex"))
 		return self.get("subscription_rate_inc")
 
 	def create_invoice(self):
@@ -18,6 +20,8 @@ class SubscriptionBillItem(Document):
 			"doctype": "Sales Invoice",
 			"customer": self.get("customer"),
 			"due_date": self.get("bill_date"),
+			"posting_date": self.get("bill_date"),
+			"set_posting_time" : "1",
 			"m_psof": self.get("created_from"),
 			"date_from": self.get("date_from"),
 			"date_to": self.get("date_to"),
@@ -40,6 +44,11 @@ class SubscriptionBillItem(Document):
 			"uom": "Nos",
 			"conversion_factor": 1,
 			"rate": self.get_subs_rate(),
+			#ossphinc 04282023
+			"price_list_rate": self.get_subs_rate(),
+			"base_price_list_rate": self.get_subs_rate(),
+			"discount_amount": self.get("rounding_diff"),
+			#ossphinc 04282023
 			'income_account': frappe.get_doc("Subscription Program", self.get("subscription_program")).get_sales_account()
 		})
 

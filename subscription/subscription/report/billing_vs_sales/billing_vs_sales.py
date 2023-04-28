@@ -52,24 +52,21 @@ def execute(filters=None):
 
 def process_data(filters=None):
     s_data = get_doc_data("Monthly PSOF Program Bill", filters)
-    sales_data = process_df(s_data)
     # bills_data = process_df(get_doc_data("Subscription Bill Item", filters))
 
 
-def process_df(doc_data):
-    df_dict = {}
-    df = pd.DataFrame(doc_data)
-    grouped_df = df.groupby(["customer_name", "psof"])
-
-    for groups, content in grouped_df:
-        if df_dict.get(groups[0]):
-            df_dict[groups[0]][groups[1]] = content.to_dict('records')
-        else:
-            df_dict[groups[0]] = content.to_dict('records')
-
-    return df_dict
-
-
+# def process_df(doc_data):
+#     df_dict = {}
+#     df = pd.DataFrame(doc_data)
+#     grouped_df = df.groupby(["customer_name", "psof"])
+#
+#     for groups, content in grouped_df:
+#         if df_dict.get(groups[0]):
+#             df_dict[groups[0]][groups[1]] = content.to_dict('records')
+#         else:
+#             df_dict[groups[0]] = content.to_dict('records')
+#
+#     return df_dict
 
 
 def get_report_cols():
@@ -160,3 +157,5 @@ def get_start_end_day(year, month):
         "s": get_first_day(date),
         "e": get_last_day(date)
     }
+
+
