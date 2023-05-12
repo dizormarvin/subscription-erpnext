@@ -31,10 +31,6 @@ def process_data(x, filters=None):
         data = [d for d in data if d.get('variance')]
         has_variance = pd_df[pd_df['variance'] == 0].index
         pd_df.drop(has_variance, inplace=True)
-    else:
-        data = [d for d in data if d.get('variance') == 0]
-        no_variance = pd_df[pd_df['variance'] != 0].index
-        pd_df.drop(no_variance, inplace=True)
 
     if len(data):
         for i, d in enumerate(data):
