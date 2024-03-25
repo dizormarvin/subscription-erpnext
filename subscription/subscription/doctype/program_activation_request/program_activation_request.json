@@ -12,6 +12,7 @@
   "status",
   "column_break_2",
   "psof",
+  "no_of_months",
   "requested_date",
   "billing_assistant",
   "activation_ref",
@@ -157,9 +158,7 @@
    "fetch_if_empty": 1,
    "fieldname": "user_signature",
    "fieldtype": "Data",
-   "hidden": 1,
-   "label": "User Signature",
-   "read_only": 1
+   "label": "User Signature"
   },
   {
    "fetch_from": "customer.billing_assistant",
@@ -168,12 +167,20 @@
    "fieldtype": "Data",
    "label": "Billing Assistant",
    "read_only": 1
+  },
+  {
+   "fieldname": "no_of_months",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "No of Months (Recovery)",
+   "precision": "0"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2022-10-26 11:23:12.544093",
+ "modified": "2023-12-27 17:23:27.917043",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Program Activation Request",
@@ -190,6 +197,19 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Account Manager",
+   "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],

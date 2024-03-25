@@ -12,6 +12,7 @@
   "program_name",
   "item",
   "item_class",
+  "company_group",
   "subscription_rate",
   "column_break_5",
   "active",
@@ -56,7 +57,9 @@
   "promo_ar_account",
   "freight_ar_account",
   "section_break_42",
-  "vat_account"
+  "vat_account",
+  "ird_details_section",
+  "components"
  ],
  "fields": [
   {
@@ -361,10 +364,28 @@
    "label": "Packaged Program",
    "mandatory_depends_on": "eval: doc.is_package;",
    "options": "Subscription Package Program"
+  },
+  {
+   "fieldname": "ird_details_section",
+   "fieldtype": "Section Break",
+   "label": "IRD Details"
+  },
+  {
+   "fieldname": "components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "Subscription Program Component"
+  },
+  {
+   "fieldname": "company_group",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Company Group",
+   "options": "Cable Boss\nOMI"
   }
  ],
  "links": [],
- "modified": "2022-09-09 11:45:50.031508",
+ "modified": "2024-02-07 15:07:41.284105",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Program",

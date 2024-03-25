@@ -63,7 +63,9 @@ class PSOF(Document):
 
         # get data from server
         for i in progs:
+            # original
             start = i.supersede_date if i.renewal and not i.for_cb else i.start_date
+            # start = i.supersede_date if hasattr(i, 'supersede_date') and i.renewal else other_date if not hasattr(i, 'supersede_date') and i.renewal else i.start_date
             end = i.end_date
             decoder_count = 0
             card_count = 0

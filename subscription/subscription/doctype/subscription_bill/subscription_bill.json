@@ -133,7 +133,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2023-04-19 17:19:54.633379",
+ "modified": "2023-07-25 17:01:39.361347",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Bill",
@@ -149,6 +149,7 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],

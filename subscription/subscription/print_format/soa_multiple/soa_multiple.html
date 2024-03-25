@@ -1,0 +1,666 @@
+{% set current_month = frappe.get_doc("Subscription Period", doc.subscription_period) %}
+{% set prev = current_month.start_date | string %} 
+{% set cyear, cmonth, cday = prev.split("-") %}
+{% set xyear, xmonth, xday = prev.split("-") %}
+
+{% if ((cmonth | int) - 1) == 0 %} {% set cyear = ((cyear | int) - 1) | str %} 
+    {% set cmonth = 12 | str %} 
+{% endif %}
+
+{% if ((xmonth | int) - 1) == 0 %} 
+    {% set xyear = ((xyear | int) - 1) | str %} 
+    {% set xmonth = 12 | str %}
+{% else %}
+    {% set xyear = (xyear | int) | str %} 
+    {% set xmonth = ((xmonth | int) - 1) | str %}
+{% endif %}
+
+{% set prev = [cyear, cmonth, cday] | join("-") %} 
+{% set xprev = [xyear, xmonth, xday] | join("-") %}
+
+{% set m, d, y = frappe.format_date(prev).split(" ") %} 
+{% set xm, xd, xy = frappe.format_date(xprev).split(" ") %}
+
+{% set bill_ff = "" %}
+{% set total_amount = 0 %} 
+
+{% for bill in doc.billings %} 
+{% set subs_bill = frappe.db.get_list('Subscription Bill Item', {'parent': bill.bill_no,'customer': bill.customer,'bill_date': bill.date}, ['*']) %}
+{% set tab_customer = frappe.db.sql("""select  signatory from `tabCustomer` where name = %(cust)s""", {'cust': bill.customer}, as_dict=True) %}  
+{% set date_time = frappe.utils.now_datetime().strftime('%Y-%m-%d %H:%M:%S').split(' ') %}
+
+    {% macro header() %}
+
+        <div class="margin-left-right" id="head" style='padding-top:-10px;'>
+            <div style="height: auto;width: 135px;"><img src="/files/cable boss logo.png" /></div>
+            <div class="column_" style="align-self: center; padding-left: 1px">
+                <div class="text-center" >
+                    <b>CABLE BOX OFFICE SHOWS AND SYSTEMS CORPORATION</b><br>
+                    6/F Renaissance Tower D, Meralco Avenue, Brgy. Ugong, Pasig City<br>
+                    Tel.: 8633-7361 | 8633-6249 <br>
+                    Fax: 8638-7588
+                </div>
+            </div>
+        </div>
+
+
+<div class="bottom-part margin-left-right">
+    <div class="soa-container1">
+
+            <div class="text-center" style=''>
+                <h2>Statement of Account<br /><small>{{ bill.customer }}</small></h2>
+            </div>
+            <div class="row-apart">
+                    <div>
+                        <div>{{ bill.customer_name }}</div>
+                        <div>{%- if frappe.db.get_value("Address",  bill.customer + '-office', "address_line1") is not none -%}
+                            {{ frappe.db.get_value("Address",  bill.customer + '-office', "address_line1")}}
+                            {%- endif -%}</div>
+                            {% if tab_customer %}
+                                <div>ATTENTION: {{ tab_customer[0].signatory or ' ' }}</div>
+                            {% endif %}
+
+                        <div class="bill-content">
+
+                        </div>
+                        <br>
+                </div>
+                <div>
+                    <div><b>No:</b> {{ bill.bill_no }}</div>
+                    <div><b>Date:</b> {{ frappe.format_date(bill.billing_date) }}</div>
+                </div>
+
+        </div>
+
+ {% endmacro %}
+
+        {% set sub_totals = frappe.db.get_list('GL Entry', {'party':bill.customer,'posting_date': ['<', prev]}, [' sum(debit) as balance','sum(credit) as paid', 'voucher_no']) %}
+
+        {% macro sub_header() %}
+
+            <div class="table-container" >
+                <div>To bill you for the following: &nbsp;</div>
+                <div class="label_">
+
+                {% for subs in subs_bill %}
+
+                    {{ subs.subscription_program  }}
+                {% endfor %}
+
+                </div>
+            </div>
+
+            <div class="midtable-container label_ rnd-border" style='margin-top: 3px;'>
+                    <div>PARTICULARS</div>
+                    <div>AMOUNT</div>
+                </div>
+        {% endmacro %}
+
+
+    {% macro above_items() %}
+
+        <div class="table-container">
+            <table class="tg margin-left-right" width=100%>
+                <tbody>
+                <tr>
+                    <td class="tg-0lax bold" colspan="2">Balance as of {{ xm + " " + xy }}</td>
+                    <td class="tg-0lax"></td>
+                    <td class="tg-0lax"></td>
+                    {% if sub_totals[0].paid %}
+                        <td colspan="2" class="tg-0lax">Php</td>
+                    {% else %}
+                        <td colspan="2" class="tg-0lax"></td>
+                    {% endif %}
+                    <td class="tg-0lax text-right">
+                        {% if sub_totals[0].paid %}
+                        {{ frappe.format(sub_totals[0].balance - sub_totals[0].paid, {'fieldtype':'Currency','options':'PHP' }) }}
+                        {% else %}
+
+                        { frappe.format(sub_totals[0].balance, {'fieldtype':'Currency','options':'PHP' }) }}
+
+                        {% endif %}
+
+                    </td>
+                </tr>
+                <tr>
+                <!--<td class="tg-0lax" colspan="2">{{ doc.subscription_period }} @ {{ frappe.format(doc.exchange_rate, {'fieldtype':'Currency','options':'PHP' }) }}</td>-->
+                 <td class="tg-0lax" colspan="2">{{ doc.subscription_period }} Subs Fee @ {{ doc.exchange_rate }}</td>
+
+
+                <td class="tg-0lax">Php</td>
+                <td class="tg-0lax text-right">{{ frappe.format(bill.usd_msf / 1.12, {'fieldtype':'Currency','options':'PHP' }) }}</td>
+                <td colspan="2" class="tg-0lax"></td>
+                <td class="tg-0lax"></td>
+              </tr>
+                <tr>
+                <td class="tg-0lax" colspan="2">12% VAT</td>
+                <td class="tg-0lax"></td>
+                <td class="tg-0lax text-right" style='border-bottom:1px solid black;'>{{ frappe.format(bill.usd_msf - (bill.usd_msf / 1.12), {'fieldtype':'Currency','options':'PHP' }) }}</td>
+                <td colspan="2" class="tg-0lax"></td>
+                <td class="tg-0lax text-right" style='border-bottom:1px solid black;'>{{ frappe.format(bill.usd_msf, {'fieldtype':'Currency','options':'PHP' }) }}</td>
+              </tr>
+
+                <tr>
+                <td class="tg-0lax" colspan="2">TOTAL</td>
+                <td class="tg-0lax"></td>
+                <td class="tg-0lax"></td>
+                <td colspan="2" class="tg-0lax"></td>
+                <td class="tg-0lax text-right">
+                    {% if sub_totals[0].paid %}
+                            {{ frappe.format(bill.usd_msf + (sub_totals[0].balance - sub_totals[0].paid), {'fieldtype':'Currency','options':'PHP' }) }}
+                            {% set this_total = bill.usd_msf + (sub_totals[0].balance - sub_totals[0].paid) %}
+
+                            {% set total_amount = bill.usd_msf + (sub_totals[0].balance - sub_totals[0].paid) %}
+
+
+                        {% else %}
+                            {{ frappe.format(bill.usd_msf + (sub_totals[0].balance or 0), {'fieldtype':'Currency','options':'PHP' }) }}
+                            {% set total_amount = bill.usd_msf + (sub_totals[0].balance or 0) %}
+                        {% endif %}
+                </td>
+              </tr>
+
+                <tr>
+    <td class="tg-0lax" colspan="2">Less Payment(s)</td>
+    <td class="tg-0lax"></td>
+    <td class="tg-0lax"></td>
+    <td colspan="2" class="tg-0lax"></td>
+    <td class="tg-0lax"></td>
+  </tr>
+    {% endmacro %}
+
+
+
+
+<!--    FOR SECOND PAGE            -->
+                {% set dict_line = [] %}
+                {% set col_details = '' %}
+
+
+                {% set less_payments = frappe.db.sql("""
+                SELECT
+                name, pr_no, paid_amount, posting_date, mode_of_payment, pr_date, direct_deposit_date, reference_date, reference_no, cust_bank_acc, cable_boss_bank_account
+                FROM
+                `tabPayment Entry`
+                WHERE
+                party = %(customer)s AND docstatus = 1 and posting_date between %(start_date)s and %(end_date)s
+                """, {'customer': bill.customer, 'start_date': current_month.start_date, 'end_date': current_month.end_date}, as_dict=True) %}
+
+                {% set _ = dict_line.append({
+                        'a': 'Less Payment(s)',
+                        'b': '',
+                        'c': ''
+                    }) %}
+
+                {% if less_payments|len %}
+
+
+
+                {% for payment_entry in less_payments %}
+                {% if payment_entry.reference_date %}
+                {% set pe_reference_date = payment_entry.reference_date.strftime('%Y-%m-%d') %}
+                {% set ref_date_parts = pe_reference_date.split('-') %}
+                {% set formatted_reference_date = ref_date_parts[1] + "-" + ref_date_parts[2] + "-" + ref_date_parts[0] %}
+
+                {% endif %}
+                {% if payment_entry.pr_date %}
+                    {% set pe_pr_date = payment_entry.pr_date.strftime('%Y-%m-%d') %}
+                    {% set pr_date_parts = pe_pr_date.split('-') %}
+                    {% set formatted_pr_date = pr_date_parts[1] + "-" + pr_date_parts[2] + "-" + pr_date_parts[0] %}
+
+                {% endif %}
+
+                {% if payment_entry.mode_of_payment == 'Check' or payment_entry.mode_of_payment == 'Check-USD' %}
+
+                        {% set col_details = 'PR #' + payment_entry.pr_no + '/' + (payment_entry.cust_bank_acc.split('-')[0] if payment_entry.cust_bank_acc else '') + '/' + payment_entry.reference_no + '/' + formatted_reference_date %}
+
+                {% elif payment_entry.mode_of_payment == 'Cash' or payment_entry.mode_of_payment == 'Cash-USD (Conversion)' %}
+
+                    {% set col_details = 'PR #' + payment_entry.pr_no + '/' + payment_entry.mode_of_payment + '/' + formatted_pr_date %}
+
+
+                {% elif payment_entry.mode_of_payment == 'Direct Deposit' or payment_entry.mode_of_payment == 'Direct Deposit-USD'%}
+                    {% set col_details = 'PR #' ~ payment_entry.pr_no ~ '/' ~ (payment_entry.cable_boss_bank_account.split('-')[0] if payment_entry.cable_boss_bank_account else '') ~ '/' ~ payment_entry.mode_of_payment ~ '/' ~ formatted_pr_date %}
+
+                {% else %}
+                    {% set col_details = 'PR #' ~ payment_entry.pr_no ~ '/' ~ payment_entry.mode_of_payment ~ '/' ~ payment_entry.direct_deposit_date %}
+
+                {% endif %}
+
+                {% if loop.last %}
+                    {% set totals_payment = frappe.db.get_list('Payment Entry', {'party':bill.customer,'posting_date': ['between', [current_month.start_date, current_month.end_date]], 'docstatus': 1}, [' sum(paid_amount) as paid_amount']) %}
+
+
+                    {% set _ = dict_line.append({
+                        'a': col_details,
+                        'b': frappe.format( payment_entry.paid_amount , {'fieldtype':'Currency','options':'PHP' }) ,
+                        'c': frappe.format( totals_payment[0].paid_amount , {'fieldtype':'Currency','options':'PHP' })
+                    }) %}
+                {% else %}
+
+                {% set _ = dict_line.append({
+                        'a': col_details,
+                        'b': frappe.format( payment_entry.paid_amount , {'fieldtype':'Currency','options':'PHP' }) ,
+                        'c': ''
+                    }) %}
+                {% endif %}
+
+                {% if loop.last %}
+                    <td class="tg-0lax" style="border-bottom:1px solid black;" >{{ frappe.format( payment_entry.paid_amount , {'fieldtype':'Currency','options':'PHP' }) }} </td>
+                {% else %}
+                    <td class="tg-0lax"> {{ frappe.format( payment_entry.paid_amount , {'fieldtype':'Currency','options':'PHP' }) }} </td>
+                {% endif %}
+
+
+
+
+
+
+
+
+<!--      <tr>-->
+<!--        <td class="tg-0lax" colspan="2"> &nbsp; &nbsp;-->
+<!--        {% if payment_entry.mode_of_payment == 'Check' or payment_entry.mode_of_payment == 'Check-USD' %}-->
+<!--            PR # {{ payment_entry.pr_no }} / {{ payment_entry.cust_bank_acc.split("-")[0] }} / {{ payment_entry.reference_no }} / {{ formatted_reference_date }}-->
+<!--            {% set _= dict_line.append({'a':1}) %}-->
+<!--            {{ dict_line }}-->
+<!--        {% elif payment_entry.mode_of_payment == 'Cash' or payment_entry.mode_of_payment == 'Cash-USD (Conversion)' %}-->
+<!--            PR # {{ payment_entry.pr_no }} / {{ payment_entry.mode_of_payment }} / {{ formatted_pr_date }}-->
+<!--            {% set _= dict_line.append({'a':1}) %}-->
+<!--            {{ dict_line }}-->
+<!--        {% elif payment_entry.mode_of_payment == 'Direct Deposit' or payment_entry.mode_of_payment == 'Direct Deposit-USD'%}-->
+<!--            PR # {{ payment_entry.pr_no }}/ {{ payment_entry.cable_boss_bank_account.split('-')[0] }}  / {{ payment_entry.mode_of_payment }} / {{ formatted_pr_date }}-->
+<!--            {% set _= dict_line.append({'a':1}) %}-->
+<!--            {{ dict_line }}-->
+<!--        {% else %}-->
+<!--            PR # {{ payment_entry.pr_no }} / {{ payment_entry.mode_of_payment }} / {{ payment_entry.direct_deposit_date }}-->
+<!--            {% set _= dict_line.append({'a':1}) %}-->
+<!--            {{ dict_line }}-->
+<!--        {% endif %}-->
+
+<!--            {{ dict_line }}-->
+<!--          </td>-->
+<!--          <td class="tg-0lax"></td>-->
+
+<!--         {% if loop.last %}-->
+<!--            <td class="tg-0lax" style="border-bottom:1px solid black;" >{{ frappe.format( payment_entry.paid_amount , {'fieldtype':'Currency','options':'PHP' }) }} </td>-->
+<!--        {% else %}-->
+<!--            <td class="tg-0lax"> {{ frappe.format( payment_entry.paid_amount , {'fieldtype':'Currency','options':'PHP' }) }} </td>-->
+<!--        {% endif %}-->
+<!--        <td colspan="2"class="tg-0lax"></td>-->
+<!--        {% if loop.last %}-->
+<!--        {% set totals_payment = frappe.db.get_list('Payment Entry', {'party':bill.customer,'posting_date': ['between', [current_month.start_date, current_month.end_date]], 'docstatus': 1}, [' sum(paid_amount) as paid_amount']) %}-->
+<!--        <td colspan=2 class="tg-0lax text-right" style="border-bottom:1px solid black;" > {{ frappe.format( totals_payment[0].paid_amount , {'fieldtype':'Currency','options':'PHP' }) }} </td>-->
+<!--        {% endif %}-->
+
+<!--      </tr>-->
+                {% endfor %}
+
+            {% endif %}
+   <tr>
+    <td class="tg-0lax" colspan="2">Add(Deduct): Adjustments</td>
+    <td class="tg-0lax"></td>
+    <td class="tg-0lax"></td>
+    <td class="tg-0lax"></td>
+    <td class="tg-0lax"></td>
+  </tr>
+   
+  
+        {% set accounting_entries = frappe.db.sql("""
+                SELECT
+                    sum(jea.debit) as debit, sum(jea.credit) as credit, jea.parent, je.name as journal, je.posting_date, je.soa_remark_3, jea.party as customer,
+                    case
+                        when sum(jea.debit) = 0 then -sum(jea.credit)
+                        else sum(jea.debit)
+                    end as amount,
+                    
+                    case
+                        when sum(jea.debit) = 0 then 'credit'
+                        else 'debit'
+                    end as debit_credit
+                
+                FROM
+                    `tabJournal Entry Account` jea
+                LEFT JOIN
+                `tabJournal Entry` je ON je.name = jea.parent 
+                
+                WHERE
+                jea.party = %(customer)s AND jea.docstatus = 1 
+                and je.naming_series in ('BILL-JV-.YYYY.-', 'BILL-JV-.YYYY.-.MM.-.####') and je.posting_date between %(start_date)s and %(end_date)s 
+                and jea.account_type = %(like)s
+                group by je.name """,
+                {'customer': bill.customer, 'start_date': current_month.start_date, 'end_date': current_month.end_date, 'like': 'Receivable'}, as_dict=True)  %}
+        
+<!--        <h1>{{ accounting_entries }}</h1>-->
+
+                {% set je_detail_first = '' %}
+
+                {% set je_detail_last = '' %}
+
+                {% set je_total_detail_first = '' %}
+                {% set je_total_detail_last = '' %}
+        
+        {% for entry in accounting_entries %}
+            {% set posting_d = entry.posting_date | string %}
+            {% set cyear1, cmonth1, cday1 = posting_d.split("-") %}
+            {% if ((cmonth1 | int) - 1) == 0 %}
+                {% set cyear1 = ((cyear1 | int) - 1) | str %}
+                {% set cmonth1 = 12 | str %}
+            {% endif %}
+            {% set posting_d1 = [cyear1, cmonth1, cday1] | join("-") %}
+            {% set y1, d1, m1 = frappe.format_date(posting_d1).split(" ") %}
+
+
+            {% set acc_ent = entry.amount|string %}
+
+<!--                START APPENDING JOURNAL ENTRY-->
+
+
+                    {% if acc_ent.split('-')|len == 2  %}
+                        {% set je_detail_last = '(' + frappe.format( acc_ent.split('-')[-1], {'fieldtype':'Currency','options':'PHP' }) + ')' %}
+                    {% else %}
+                        {% set je_detail_last = frappe.format( acc_ent.split('-')[-1], {'fieldtype':'Currency','options':'PHP' }) %}
+                    {% endif %}
+
+
+
+<!--                TOTAL JV-->
+            {% set account_entries = frappe.db.sql("""
+                        SELECT
+                        jea.parent, je.name as journal, je.posting_date, je.soa_remark_3, jea.party as customer,
+                        sum(
+                        case
+                        when jea.debit = 0 then -jea.credit
+                        else jea.debit
+                        end
+                        ) as amount,
+
+                        case
+                        when sum(jea.debit) = 0 then 'credit'
+                        else 'debit'
+                        end as debit_credit
+
+                        FROM
+                        `tabJournal Entry Account` jea
+                        LEFT JOIN
+                        `tabJournal Entry` je ON je.name = jea.parent
+                        WHERE
+                        jea.party = %(customer)s AND jea.docstatus = 1 and je.naming_series in ('BILL-JV-.YYYY.-', 'BILL-JV-.YYYY.-.MM.-.####') and je.posting_date between %(start_date)s and %(end_date)s and jea.account_type = %(like)s
+
+                        """,
+                    {'customer': bill.customer, 'start_date': current_month.start_date, 'end_date': current_month.end_date, 'like': 'Receivable'}, as_dict=True)
+                    %}
+                        {% set sum_total_adjustment = [] %}
+                        {% if loop.last %}
+
+                        {% set totals_payment = frappe.db.get_list('Payment Entry', {'party':bill.customer,'posting_date': ['between', [current_month.start_date, current_month.end_date]], 'docstatus': 1}, [' sum(paid_amount) as paid_amount']) %}
+                        {% set acc_ent = account_entries[0].amount|string %}
+
+                            {% if acc_ent.split('-')|len == 2 %}
+                                {% set je_total_detail_last = frappe.format( -1 * account_entries[0].amount, {'fieldtype':'Currency','options':'PHP' }) %}
+<!--                                <td class="tg-0lax text-right" style="border-bottom:1px solid black;">({{ frappe.format( -1 * account_entries[0].amount, {'fieldtype':'Currency','options':'PHP' }) }})</td>-->
+                            {% else %}
+                                {% set je_total_detail_last = frappe.format( account_entries[0].amount, {'fieldtype':'Currency','options':'PHP' }) %}
+<!--                                <td class="tg-0lax text-right" style="border-bottom:1px solid black;">{{ frappe.format( account_entries[0].amount, {'fieldtype':'Currency','options':'PHP' }) }}</td>-->
+                            {% endif %}
+                        {% endif %}
+
+            {% if loop.first %}
+                {% set _ = dict_line.append({
+                    'a': 'Add(Deduct): Adjustments',
+                    'b': '',
+                    'c': ''
+                }) %}
+            {% endif %}
+
+
+            {% if loop.last %}
+                {% set _ = dict_line.append({
+                    'a': '',
+                    'b': je_detail_last or '',
+                    'c': je_total_detail_last or ''
+                }) %}
+            {% else %}
+                {% set _ = dict_line.append({
+                    'a': entry.soa_remark_3 or '',
+                    'b': je_detail_last or '',
+                    'c':  ''
+                }) %}
+            {% endif %}
+
+
+<!--                END APPENDING JOURNAL ENTRY-->
+
+{% macro comments() %}
+
+
+<!--                START OF TR JV-->
+
+
+                <tr>
+
+            <td class="tg-0lax" colspan="2" style='padding-left: 20px !important; '> {{ entry.soa_remark_3 }} </td>
+            <td class="tg-0lax"></td>
+            {% if loop.last %}
+                <td class="tg-0lax text-right" style="border-bottom:1px solid black;">
+                    {% if acc_ent.split('-')|len == 2  %}
+                      ({{ frappe.format( acc_ent.split('-')[-1], {'fieldtype':'Currency','options':'PHP' }) }})
+
+                    {% else %}
+                        {{ frappe.format( acc_ent.split('-')[-1], {'fieldtype':'Currency','options':'PHP' }) }}
+                    {% endif %}
+                </td>
+            {% else %}
+                {% if acc_ent.split('-')|len == 2  %}
+                  <td class="tg-0lax text-right" >({{ frappe.format( acc_ent.split('-')[-1], {'fieldtype':'Currency','options':'PHP' }) }}) </td>
+
+                {% else %}
+                    <td class="tg-0lax text-right" >{{ frappe.format( acc_ent.split('-')[-1], {'fieldtype':'Currency','options':'PHP' }) }} </td>
+                {% endif %}
+
+            {% endif %}
+            <td colspan=2 class="tg-0lax"></td>
+
+             {% set account_entries = frappe.db.sql("""
+                        SELECT
+                        jea.parent, je.name as journal, je.posting_date, je.soa_remark_3, jea.party as customer,
+                        sum(
+                        case
+                        when jea.debit = 0 then -jea.credit
+                        else jea.debit
+                        end
+                        ) as amount,
+
+                        case
+                        when sum(jea.debit) = 0 then 'credit'
+                        else 'debit'
+                        end as debit_credit
+
+                        FROM
+                        `tabJournal Entry Account` jea
+                        LEFT JOIN
+                        `tabJournal Entry` je ON je.name = jea.parent
+                        WHERE
+                        jea.party = %(customer)s AND jea.docstatus = 1 and je.naming_series in ('BILL-JV-.YYYY.-', 'BILL-JV-.YYYY.-.MM.-.####') and je.posting_date between %(start_date)s and %(end_date)s and jea.account_type = %(like)s
+
+                        """,
+                    {'customer': bill.customer, 'start_date': current_month.start_date, 'end_date': current_month.end_date, 'like': 'Receivable'}, as_dict=True)
+                    %}
+                        {% set sum_total_adjustment = [] %}
+                        {% if loop.last %}
+
+                        {% set totals_payment = frappe.db.get_list('Payment Entry', {'party':bill.customer,'posting_date': ['between', [current_month.start_date, current_month.end_date]], 'docstatus': 1}, [' sum(paid_amount) as paid_amount']) %}
+                        {% set acc_ent = account_entries[0].amount|string %}
+
+                            {% if acc_ent.split('-')|len == 2 %}
+                                <td class="tg-0lax text-right" style="border-bottom:1px solid black;">({{ frappe.format( -1 * account_entries[0].amount, {'fieldtype':'Currency','options':'PHP' }) }})</td>
+                            {% else %}
+                                <td class="tg-0lax text-right" style="border-bottom:1px solid black;">{{ frappe.format( account_entries[0].amount, {'fieldtype':'Currency','options':'PHP' }) }}</td>
+                            {% endif %}
+                        {% endif %}
+          </tr>
+
+<!--                END OF TR JV-->
+
+{% endmacro %}
+
+
+       {% endfor %}
+
+       <h1> {{ dict_line }}</h1>
+
+
+
+        {% macro below_items() %}
+         <tr>
+         <td class="tg-0lax" colspan="2" style="font-weight:bold; font-size:12px;">TOTAL AMOUNT DUE & COLLECTIBLE AS OF {{ m.upper() + " " + y }}</td>
+    <td class="tg-0lax"></td>
+    <td class="tg-0lax" style='color:white;'></td>
+    <td colspan=2 class="tg-0lax" style="font-weight:bold">Php</td>
+
+          {% set total_amount_due = [] %}
+                {% set totals_subs = frappe.db.get_list('GL Entry', {'party':bill.customer,'posting_date': ['<', prev]}, [' sum(debit) as balance','sum(credit) as paid', 'voucher_no']) %}
+                {% set totals_payment = frappe.db.get_list('Payment Entry', {'party':bill.customer,'posting_date': ['between', [current_month.start_date, current_month.end_date]], 'docstatus': 1}, [' sum(paid_amount) as paid_amount']) %}
+
+                <!--journal entry-->
+                {% set account_entries = frappe.db.sql("""
+                    SELECT
+                        jea.parent, je.name as journal, je.posting_date, je.soa_remark_3, jea.party as customer,
+                        sum(
+                            case
+                                when jea.debit = 0 then -jea.credit
+                            else jea.debit
+                            end
+                        ) as amount,
+
+                        case
+                            when sum(jea.debit) = 0 then 'credit'
+                        else 'debit'
+                        end as debit_credit
+
+                    FROM
+                        `tabJournal Entry Account` jea
+                    LEFT JOIN
+                        `tabJournal Entry` je ON je.name = jea.parent
+                    WHERE
+                        jea.party = %(customer)s AND jea.docstatus = 1 and je.naming_series in ('BILL-JV-.YYYY.-', 'BILL-JV-.YYYY.-.MM.-.####') and je.posting_date between %(start_date)s and %(end_date)s and jea.account_type LIKE %(like)s
+
+                """,
+                {'customer': bill.customer, 'start_date': current_month.start_date, 'end_date': current_month.end_date, 'like': 'Receivable'}, as_dict=True)
+                %}
+
+                {% set _ = total_amount_due.append((total_amount or 0) - (totals_payment[0].paid_amount or 0)) %}
+                {% set _ = total_amount_due.append(account_entries[0].amount or 0) %}
+
+
+                <td class="c5 btm-border text-right" style="border-bottom:double; font-weight:bold">{{ frappe.format(total_amount_due|sum, {'fieldtype':'Currency','options':'PHP' }) }}</td>
+   </tr>
+             <tr></tr>
+           <tr>
+            <td class="tg-0pky" colspan="2"></td>
+            <td class="tg-0pky"></td>
+            <td class="tg-0pky"></td>
+            <td class="tg-0pky"></td>
+          </tr>
+
+
+
+          <tr>
+            <td width='8%' class="notesonly" colspan="">NOTE: </td>
+
+            <td width='50%' class="text-left" style='margin-right:200px; text-align:left;'>
+                <table style='margin-left:-5px; margin-top:-5px; text-align:right; font-size:13px;'>
+                            {% set note_subs_bill = frappe.db.get_list('Subscription Bill Item', {'parent': bill.bill_no,'customer': bill.customer,'bill_date': bill.date}, ['*'], group_by='psof_no') %}
+
+                            <!--start loop note_subs_bill-->
+                            {% for subs in note_subs_bill %}
+                                {% set psof_programs = frappe.db.get_list('PSOF Program', {'parent': subs.psof_no}, ['sum(subscription_fee) as subs_fee']) %}
+
+                                <!--start loop psof_programs-->
+                                {% for psof_program in psof_programs %}
+                                    <tr>
+                                        <td>
+                                            {{ subs.psof_no  }} @ $ &nbsp; {{ frappe.format( psof_program.subs_fee  , {'fieldtype':'Currency','options':'PHP' }) }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                <!--end loop psof_programs-->
+
+                            {% endfor %}
+
+                            <!--end loop note_subs_bill-->
+                        </table>
+            </td>
+          </tr>
+
+        </tbody>
+        </table>
+        {% endmacro %}
+
+
+
+            {% macro footer() %}
+            </div>
+            </div>
+
+
+            <div style='bottom: 100;'>
+            <div class="container" style="width: 100% !important; padding: 0 !important; margin: 0 !important;">
+                <div class="row row-apart" style="padding: 0 !important; margin: 0 !important; width: 100% !important;">
+                    <div class="col-xs-12" style="padding: 0 !important; margin: 0 !important;">
+                        <div style="width: 100%; font-size: 12px; color:white;">
+                            NOTE: Payment of the check should be made payable to CABLE BOX OFFICE SHOWS & SYSTEMS CORPORATION.
+                        </div>
+                    </div>
+                </div>
+                <div class="row" style="padding: 0 !important; margin: 0 !important; width: 100% !important;">
+                    <div class="col-xs-6" style="padding: 0 !important; margin: 0 !important;">
+                        <div style="width: 100%; font-size: 12px;">
+                            <div class="rnd-border">
+                                <div class="bold" style="margin-left: 10px">Note:</div>
+                                <ol style="font-size:9px">
+                                    <li>Please disregard this notice if payment has already been made</li>
+                                    <li>Payment of the check should be made payable to CABLE BOX OFFICE SHOWS & SYSTEMS CORPORATION.</li>
+                                    <li>This will be considered correct unless notification to the contrary is received within Ten (10) days from receipt hereof.</li>
+                                    <li>Unsettled subscription fee within 30 days from receipt hereof will result in deactivation of signal.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xs-6" style="padding: 0 !important; margin: 0 !important;">
+                        <div style="width: 100%; font-size: 12px;">
+                                <div class="rnd-border text-center hr_apart" style="margin-left: 5px; font-size: 12px">
+                                    <div class="bold">
+                                        <div style='font-size: 12px !important;'>CABLE BOX OFFICE SHOWS & SYSTEMS CORPORATION</div>
+                                        <div style='font-size: 13px !important;'>One great source. All great networks.</div>
+                                    </div>
+                                    <div><br><br><br></div>
+                                    <div>
+                                                                        <!--<div class="btm-border" style=" margin: auto;">{{ frappe.db.get_value("Customer",  bill.customer, 'billing_assistant') }}</div>-->
+
+                                        <div class="" style=" margin: auto;">{{ frappe.db.get_value("Customer",  bill.customer, 'billing_assistant') or '<br>' }}</div>
+                                        <div style="text-decoration: overline"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  Contact Person &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+            </div>
+        </div>
+    {% endmacro %}
+
+
+
+<div class="page-break"></div>
+
+{% if dict_line.clear() %}{% endif %}
+
+{% endfor %}
+
+
+
+
+
+

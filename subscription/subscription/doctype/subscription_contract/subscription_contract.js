@@ -3,7 +3,18 @@
 {% include 'erpnext/selling/sales_common.js' %}
 
 frappe.ui.form.on('Subscription Contract',  {
+	validate: function(frm) {
+        if (frm.doc.start_date >= frm.doc.expiry_date) {
+            frappe.msgprint(__('Start Date should be less than or equal to Expiry Date.'));
+            frappe.validated = false;
+        }
+    },
+
 	onload: (frm) => {
+		if (frm.is_new()) {
+			frm.set_value('status', 'Active')
+        }
+
 		frm.set_query('psof', () => {
 			if (frm.doc.bill_expired) {
 				return {
@@ -69,7 +80,7 @@ frappe.ui.form.on('Subscription Contract',  {
 						}
 					})
 				}, 'Contract Options')
-				
+
 			} else if (frm.doc.bill_expired === 1 && frm.doc.status === "Expired") {
 				frm.add_custom_button("Extend Dummy Contract", () => {
 					frappe.call({
@@ -94,8 +105,9 @@ frappe.ui.form.on('Subscription Contract',  {
 	},
 
 	start_date: frm => {
-		let date = frappe.format(new Date(frm.doc.start_date), {fieldType: 'Date'})
-		if (!frm.doc.bill_expired) {frm.set_value('expiry_date', frappe.format(new Date(date.getFullYear() + 1, date.getMonth(), 0), {fieldType: 'Date'}))}
+		let date = frappe.format(new Date(cur_frm.doc.start_date), {fieldType: 'Date'})
+		//console.log(formattedDate)
+		if (!cur_frm.doc.bill_expired) {cur_frm.set_value('expiry_date', frappe.format(new Date(date.getFullYear() + 1, date.getMonth(), 0), {fieldType: 'Date'}))}
 	},
 
 	contract_number: (frm) => {

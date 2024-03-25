@@ -12,6 +12,7 @@ from frappe.utils import flt
 from collections import Counter
 from functools import reduce
 from operator import add
+import time
 
 
 class MonthlyPSOFBilling(Document):
@@ -26,7 +27,16 @@ class MonthlyPSOFBilling(Document):
         frappe.db.delete("Subscription Bill Item", {'subscription_period': self.name})
         frappe.db.delete("Monthly PSOF Bill", {'subscription_period': self.name})
 
+        frappe.db.delete("Digital SOA", {'subscription_period': self.name})
+        frappe.db.delete("Digital SOA Journal", {'subscription_period': self.name})
+        frappe.db.delete("Digital SOA Payment", {'subscription_period': self.name})
+
         frappe.db.delete("Sales Invoice", {'subs_period': self.name})
+
+        si = frappe.get_doc("Sales Invoice", {'subs_period': 'AUGUST 2025'})
+
+        for items in self.get("billings"):
+            frappe.db.delete("GL Entry", {'subscription_bill': items.bill_no})
 
         frappe.msgprint(msg=f"""Deleting the following documents:<br>
         <b>{linked_docs['s']}</b> Subscription Bill/s<br>
@@ -38,6 +48,7 @@ class MonthlyPSOFBilling(Document):
         subs_bill = frappe.db.count("Subscription Bill", {'subscription_period': self.name})
         subs_bill_items = frappe.db.count("Subscription Bill Item", {'subscription_period': self.name})
         monthly_bill = frappe.db.count("Monthly PSOF Bill", {'subscription_period': self.name})
+
         return {"s": subs_bill, "mb": monthly_bill, "sb": subs_bill_items}
 
     def truncate(self, number, digits) -> float:
@@ -55,22 +66,22 @@ class MonthlyPSOFBilling(Document):
     def on_cancel(self):
         frappe.db.set(self, 'status', 'Cancelled')
         # sb = frappe.get_doc("Subscription Bill", {'subscription_period': self.name})
-        #sb.cancel()
+        # sb.cancel()
 
         frappe.db.sql("""update `tabSubscription Bill` set  docstatus=2
                                           WHERE subscription_period = %s """, (self.name))
 
         frappe.db.sql("""update `tabSubscription Bill Item` set  docstatus=2
-                                          WHERE parent in ( select name from `tabSubscription Bill` where subscription_period= %s )""", (self.name))
+                                          WHERE parent in ( select name from `tabSubscription Bill` where subscription_period= %s )""",
+                      (self.name))
 
         linked_docs = frappe.get_all("Sales Invoice", filters={"subs_period": self.name})
         for linked_doc in linked_docs:
             linked_doc_obj = frappe.get_doc("Sales Invoice", linked_doc.name)
             linked_doc_obj.cancel()
 
-        #si = frappe.get_doc("Sales Invoice", {'subs_period': self.name})
-        #si.cancel()
-
+        # si = frappe.get_doc("Sales Invoice", {'subs_period': self.name})
+        # si.cancel()
 
     def check_accounts(self, items):
         for p in items:
@@ -111,6 +122,9 @@ class MonthlyPSOFBilling(Document):
                 raise_exception=True
             )
 
+    def after_insert(self):
+        pass
+
     def submit_billings(self):
         bills = self.get_billings()
         for bill in bills:
@@ -118,12 +132,13 @@ class MonthlyPSOFBilling(Document):
 
     def get_billings(self):
         subscription_bill = frappe.db.get_list("Monthly PSOF Bill", {"parent": self.name}, "bill_no", pluck="bill_no")
+
         return [frappe.get_doc("Subscription Bill", bill_no) for bill_no in subscription_bill]
 
     @frappe.whitelist()
     def create_sales_invoice(self):
         bills = self.get_billings()
-        
+
         for bill in bills:
             bill.create_invoices()
 
@@ -280,6 +295,9 @@ class MonthlyPSOFBilling(Document):
 
     @frappe.whitelist()
     def create_bills(self):
+        digitals = []
+        soa_payment = []
+
         sales_bills = frappe.db.sql("""
             SELECT 
                 d.customer, 
@@ -329,12 +347,21 @@ class MonthlyPSOFBilling(Document):
                 return 0
             return rate - vat_(rate)
 
+        def check_last_digit(num):
+            last_digit = int(str(num)[-1])  # Get the last digit as an integer
+
+            if last_digit == 5:
+                num += .001
+
+            return num
+
         for bill in sales_bills:
             customer_ = frappe.get_doc("Customer", bill.customer)
             doc = frappe.new_doc("Subscription Bill")
             doc.customer = bill.customer
             doc.customer_name = bill.customer_name
-            doc.bill_date = bill.date
+            # doc.bill_date = bill.date
+            doc.bill_date = self.posting_date
             doc.subscription_period = bill.subscription_period
             doc.due_date = get_due_date(doc.bill_date, "Customer", doc.customer)
             doc.exchange_rate = self.exchange_rate
@@ -370,10 +397,10 @@ class MonthlyPSOFBilling(Document):
             for p in sbill_items:
                 allocations = {
                     "msf": round_convert(p.sfee),
-                    "decoder_rate":  round_convert(p.drate),
-                    "card_rate":  round_convert(p.crate),
-                    "promo_rate":  round_convert(p.prate),
-                    "freight_rate":  round_convert(p.frate),
+                    "decoder_rate": round_convert(p.drate),
+                    "card_rate": round_convert(p.crate),
+                    "promo_rate": round_convert(p.prate),
+                    "freight_rate": round_convert(p.frate),
                     "decoder_diff": get_difference(round_convert(p.drate)),
                     "card_diff": get_difference(round_convert(p.crate)),
                     "promo_diff": get_difference(round_convert(p.prate)),
@@ -387,32 +414,57 @@ class MonthlyPSOFBilling(Document):
                 allocations["vat_ex"] = round2(allocations["vat_inc"] - allocations["vat"])
                 allocations["comp_total"] = round2(sum([allocations["vat_ex"], allocations["vat"],
                                                         allocations["total"]]))
-                allocations["comp_diff"] = allocations["msf"] - allocations["comp_total"]
+
+                # allocations["values1"] =allocations["vat_ex"] + vat_(allocations["total"]) + allocations["vat"] + get_difference(allocations["total"])
+                allocations["values1"] = sum([
+                    round2(check_last_digit(round(vat_(allocations["decoder_rate"]), 3))),
+                    round2(check_last_digit(round(vat_(allocations["card_rate"]), 3))),
+                    round2(check_last_digit(round(vat_(allocations["promo_rate"]), 3))),
+                    round2(check_last_digit(round(vat_(allocations["freight_rate"]), 3))),
+                    allocations["vat_ex"],
+                    allocations["vat"],
+                    get_difference(allocations["total"])
+                ])
+
+                allocations["values2"] = (allocations["values1"])
+
+                # allocations["comp_diff"] = allocations["msf"] - allocations["comp_total"]
+                # Revised 05292023 1 of 1
+                allocations["comp_diff"] = allocations["msf"] - allocations["values1"]
+
                 allocations["comp_vat_ex"] = allocations["vat_ex"] + allocations["comp_diff"]
 
                 bill_totals = {'created_from': self.monthly_psof, 'customer': doc.customer,
                                'subscription_period': doc.subscription_period, 'bill_date': doc.bill_date,
                                "subscription_program": p.program, "subs_fee": p.sfee,
                                "subscription_fee": allocations['msf'], "subscription_rate_inc": allocations["vat_inc"],
-                               "subscription_rate_ex": allocations["vat_ex"], "vat": allocations["vat"],
+                               "subscription_rate_ex": allocations["vat_ex"],
+                               "vat": allocations["vat"],
                                "decoder_rate": vat_(allocations["decoder_rate"]),
                                "card_rate": vat_(allocations["card_rate"]),
                                "promo_rate": vat_(allocations["promo_rate"]),
                                "freight_rate": vat_(allocations["freight_rate"]), "monthly_psof_no": doc.monthly_psof,
-                               "psof_no": p.psof, 'total_alloc': vat_(allocations["total"]),
+                               "psof_no": p.psof,
+                               'total_alloc': vat_(allocations["total"]),
                                'total_alloc_vat': allocations["total"], "decoder_rate_vat": allocations["decoder_rate"],
                                "card_rate_vat": allocations["card_rate"], "promo_rate_vat": allocations["promo_rate"],
                                "freight_rate_vat": allocations["freight_rate"], 'card_diff': allocations["card_diff"],
                                'decoder_diff': allocations["decoder_diff"], 'freight_diff': allocations["freight_diff"],
                                'promo_diff': allocations["promo_diff"],
                                'total_diff': get_difference(allocations["total"]),
-                               'computed_total': allocations["comp_total"], 'computed_diff': allocations["comp_diff"],
-                               'computed_vat_ex': allocations["comp_vat_ex"], "billing_currency": "PHP",
+                               'computed_total': allocations["comp_total"],
+                               'computed_diff': allocations["comp_diff"],
+                               'computed_vat_ex': allocations["comp_vat_ex"],
+                               "billing_currency": "PHP",
                                "rounding_diff": [],
-                               'tax_category': bill.get('tx')}
+                               'tax_category': bill.get('tx'),
+                               'variance': allocations["values2"]
+                               }
 
                 for i in ["decoder", "card", "promo", "freight"]:
-                    bill_totals["rounding_diff"].append(flt((bill_totals.get(f"{i}_rate_vat") - (bill_totals.get(f"{i}_rate_vat") / 1.12)), 2) - bill_totals.get(f"{i}_diff"))
+                    bill_totals["rounding_diff"].append(
+                        flt((bill_totals.get(f"{i}_rate_vat") - (bill_totals.get(f"{i}_rate_vat") / 1.12)),
+                            2) - bill_totals.get(f"{i}_diff"))
 
                 bill_totals["rounding_diff"] = flt(sum(bill_totals["rounding_diff"]), 2)
                 doc.append('items', bill_totals)
@@ -426,7 +478,8 @@ class MonthlyPSOFBilling(Document):
             doc.insert()
 
             totals["usd_allocation"] = sum([totals['decoder'], totals['promo'], totals['freight'], totals['card']])
-            totals["allocation"] = sum([totals['php_drate'], totals['php_prate'], totals['php_frate'], totals['php_crate']])
+            totals["allocation"] = sum(
+                [totals['php_drate'], totals['php_prate'], totals['php_frate'], totals['php_crate']])
             totals["vat"] = totals["t_vat"]
             totals["vat_inc"] = totals["php_msf"] - totals["allocation"]
             totals["vat_ex"] = totals["vat_inc"] - totals["vat"]
@@ -434,10 +487,9 @@ class MonthlyPSOFBilling(Document):
             totals["comp_diff"] = totals["php_msf"] - totals["comp_total"]
             totals["comp_vat_ex"] = totals["vat_ex"] + totals["comp_diff"]
 
-
             _totals_usd = reduce(add, (map(Counter, [
                 {"drate": i.get("drate"), "prate": i.get("prate"), "frate": i.get("frate"),
-              "crate": i.get("crate")} for i in sbill_items])))
+                 "crate": i.get("crate")} for i in sbill_items])))
 
             self.append('billings', {
                 'tax_category': bill.get('tx'),
@@ -451,6 +503,7 @@ class MonthlyPSOFBilling(Document):
                 "assistant": doc.assistant,
                 "customer": doc.customer,
                 "bill_no": doc.name,
+                # "date": self.posting_date,
                 "date": doc.bill_date,
                 'total_msf': totals['msf'],
                 'total_msf_vat_inc': totals['msf'] - totals["usd_allocation"],
@@ -460,7 +513,7 @@ class MonthlyPSOFBilling(Document):
                 'total_promo_rate': totals['promo'],
                 'total_freight_rate': totals['freight'],
                 'total_card_rate': totals['card'],
-                'usd_msf':  totals["php_msf"],
+                'usd_msf': totals["php_msf"],
                 'usd_msf_lv_inc': totals["vat_inc"],
                 'usd_msf_lv_ex': totals["vat_ex"],
                 'usd_vat': totals["vat"],
@@ -498,9 +551,8 @@ class MonthlyPSOFBilling(Document):
                 "x_crate": vat_(totals["php_crate"]),
                 "x_rate": vat_(totals["allocation"]),
             })
-            
-        self.create_sales_invoice()
 
+        self.create_sales_invoice()
         frappe.msgprint(
             msg='Bill successfully generated',
             title='Success',
@@ -508,5 +560,91 @@ class MonthlyPSOFBilling(Document):
             raise_exception=False
         )
         self.save()
+
+        self.create_digital()
         self.db_set("generated", 1)
         frappe.db.set_value("Monthly PSOF", self.get("monthly_psof"), "billing_generated", 1)
+
+    @frappe.whitelist()
+    def create_digital(self):
+        subscription_bill = frappe.db.get_list("Monthly PSOF Bill", {"parent": self.name}, "bill_no", pluck="bill_no")
+
+        for subs_bill in subscription_bill:
+            soa_bill = frappe.db.get_list('Subscription Bill', filters={'name': subs_bill}, fields=['name', 'customer', 'customer_name', 'account_manager', 'subscription_period'])
+
+            period = frappe.get_doc("Subscription Period", self.subscription_period)
+
+            collect = frappe.db.sql("""
+                select 
+                name as payment, 
+                party as customer, 
+                posting_date, 
+                pr_no, 
+                paid_amount as amount,
+                mode_of_payment,
+                case 
+                    when mode_of_payment in ('Check', 'Check-USD') then reference_date
+                    when mode_of_payment in ('Direct Deposit-USD', 'Direct Deposit') then direct_deposit_date
+                    else pr_date
+                end as dated
+                
+                from `tabPayment Entry`
+                where billing_date between '{}' and '{}' and party = '{}' and docstatus = 1
+
+           """.format(period.start_date, period.end_date, soa_bill[0].customer), as_dict=1)
+
+            # journal = frappe.db.sql("""
+            # SELECT
+            #     jea.parent, je.name as journal, je.total_credit as amount, je.naming_series, je.posting_date, je.soa_remark_3, jea.party as customer
+            # FROM
+            #     `tabJournal Entry Account` as jea
+            # LEFT JOIN
+            #     `tabJournal Entry` as je ON je.name = jea.parent
+            # WHERE
+            #     jea.docstatus = 1 and je.naming_series in ('BILL-JV-.YYYY.-', 'BILL-JV-.YYYY.-.MM.-.####') and je.billing_date between '{}' and '{}' and jea.party = '{}'
+            # """.format(period.start_date, period.end_date, soa_bill[0].customer), as_dict=1)
+
+            journal = frappe.db.sql("""
+                SELECT
+                    sum(jea.debit) as debit, 
+                    sum(jea.credit) as credit, 
+                    jea.parent, 
+                    je.name as journal, 
+                    je.posting_date, 
+                    je.soa_remark_3, 
+                    jea.party as customer,
+                    case
+                        when sum(jea.debit) = 0 then -sum(jea.credit)
+                        else sum(jea.debit)
+                    end as amount
+                FROM
+                    `tabJournal Entry Account` as jea
+                LEFT JOIN
+                    `tabJournal Entry` as je ON je.name = jea.parent
+                WHERE
+                    jea.docstatus = 1 and je.naming_series in ('BILL-JV-.YYYY.-', 'BILL-JV-.YYYY.-.MM.-.####') and je.billing_date between '{}' and '{}' and jea.party = '{}' and jea.account  LIKE '%ACCTS. REC.%'
+            """.format(period.start_date, period.end_date, soa_bill[0].customer), as_dict=1)
+
+            # frappe.msgprint("<pre>{}</pre>".format(collect))
+
+            doc_soa = frappe.new_doc("Digital SOA")
+            doc_soa.billing_no = soa_bill[0].name
+            doc_soa.customer_code = soa_bill[0].customer
+            doc_soa.customer = soa_bill[0].customer_name,
+            doc_soa.monthly_billing_generation = self.name
+            doc_soa.account_manager = soa_bill[0].account_manager or "",
+            doc_soa.subscription_period = soa_bill[0].subscription_period,
+            doc_soa.date = soa_bill[0].bill_date,
+
+            for pay in collect:
+                if soa_bill[0].customer == pay.get('customer'):
+                    # frappe.msgprint("<pre>{}</pre>".format(pay))
+                    pay['subscription_period'] = soa_bill[0].subscription_period
+                    doc_soa.append("payment", pay)
+
+            for adjustment in journal:
+                if soa_bill[0].customer == adjustment.get('customer'):
+                    adjustment['subscription_period'] = soa_bill[0].subscription_period
+                    doc_soa.append("journal", adjustment)
+
+            doc_soa.insert()

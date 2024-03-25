@@ -20,13 +20,13 @@ async function validatePrograms(programList, row, frm) {
     }
 }
 function diff(period, cost) {
-    return flt(cost - (flt((cost  / period), 2) * period), 2)
+    return flt(cost - (flt((cost / period), 2) * period), 2)
 }
 function cond(dif) {
     return dif >= 0 ? "OVER" : "UNDER"
 }
-const update_program = function(frm){
-    frm.set_query ("subscription_program", function() {
+const update_program = function (frm) {
+    frm.set_query("subscription_program", function () {
         return {
             "query": "subscription.subscription.doctype.psof.psof.get_programs",
             "filters": {
@@ -48,17 +48,17 @@ const computeAllocationDiff = (doc) => {
     doc.promo_difference = diff(doc.promo_max_bill_divisor, doc.promo_calculation);
     doc.freight_difference = diff(doc.freight_max_bill_divisor, doc.freight_calculation);
 }
-const computeAllocationTotal = (doc, from_bv=false) => {
+const computeAllocationTotal = (doc, from_bv = false) => {
     if (from_bv) {
         return flt(frappe.utils.sum([doc.decoder_rate, doc.card_rate, doc.promo_rate, doc.freight_rate]), 2)
     } else {
         doc.total = flt(
             frappe.utils.sum(
                 [
-                    doc.decoder_allocation_active === 1 ? flt(doc.decoder_rate, 2): 0,
-                    doc.card_allocation_active === 1 ? flt(doc.card_rate, 2): 0,
-                    doc.promo_allocation_active === 1 ? flt(doc.promo_rate, 2): 0,
-                    doc.freight_allocation_active === 1 ? flt(doc.freight_rate, 2): 0,
+                    doc.decoder_allocation_active === 1 ? flt(doc.decoder_rate, 2) : 0,
+                    doc.card_allocation_active === 1 ? flt(doc.card_rate, 2) : 0,
+                    doc.promo_allocation_active === 1 ? flt(doc.promo_rate, 2) : 0,
+                    doc.freight_allocation_active === 1 ? flt(doc.freight_rate, 2) : 0,
                 ]
             )
         )
@@ -67,33 +67,43 @@ const computeAllocationTotal = (doc, from_bv=false) => {
 const computeTax = (taxType, doc, flat_fee) => {
     if (flat_fee === "Yes") {
         doc.no_of_subs = doc.subs_display
+        console.log(doc.no_of_subs)
         doc.subscription_rate = flt((flt(doc.no_of_subs * doc.rate_per_sub)) * 1.12)
     }
     if (taxType === "Vat Inclusive") {
-        doc.less_of_vat_original = (doc.subscription_fee -  doc.total) / 1.12;
+        doc.less_of_vat_original = (doc.subscription_fee - doc.total) / 1.12;
         doc.vat_amount = roundAccurately(roundAccurately(doc.less_of_vat_original * 0.12, 3), 2) // VAT
     } else {
-        doc.less_of_vat_original = (doc.subscription_fee -  doc.total)
+        doc.less_of_vat_original = (doc.subscription_fee - doc.total)
         doc.vat_amount = 0
     }
     doc.grand_total = doc.less_of_vat_original + doc.total + doc.vat_amount;
     doc.difference_grand_total = doc.subscription_fee - doc.grand_total;
     doc.subscription_rate = doc.less_of_vat_original + doc.difference_grand_total;
-    doc.no_of_subs = Math.trunc(doc.less_of_vat_original / doc.rate_per_sub);
+
+    // Decimal Check
+    if (hasAllDecimalPlacesAsNine(doc.less_of_vat_original / doc.rate_per_sub)) {
+        doc.no_of_subs = Math.trunc((doc.less_of_vat_original) / doc.rate_per_sub) + 1;
+    } else {
+        doc.no_of_subs = Math.trunc((doc.less_of_vat_original) / doc.rate_per_sub);
+    }
+
 
     if (!frappe.utils.sum([doc.decoder_allocation_active, doc.card_allocation_active,
-        doc.promo_allocation_active, doc.freight_allocation_active])) {
+    doc.promo_allocation_active, doc.freight_allocation_active])) {
         doc.flat_subs = cint(doc.subscription_rate / doc.rate_per_sub)
     }
-    doc.subs_display = flat_fee === "Yes"? doc.no_of_subs : doc.flat_subs;
+    doc.subs_display = flat_fee === "Yes" ? doc.no_of_subs : doc.flat_subs;
 }
+
 const update_amounts = (frm, cdt, cdn) => {
-    let {tax_category, flat_fee} = frm.doc
+    let { tax_category, flat_fee } = frm.doc
     let cur_doc = locals[cdt][cdn];
     computeAllocationTotal(cur_doc)
     computeAllocationDiff(cur_doc)
     evaluateAllocationCond(cur_doc)
     computeTax(tax_category, cur_doc, flat_fee)
+    console.log(frm)
     frm.refresh_fields();
 };
 const checkContract = (contractNumber, isNew) => {
@@ -102,12 +112,12 @@ const checkContract = (contractNumber, isNew) => {
     }
     frappe.db.get_doc("Subscription Contract", contractNumber)
         .then(contract => {
-            const {tax_category, is_supersede: su, contract_number} = contract
+            const { tax_category, is_supersede: su, contract_number } = contract
             if (isNew === 1) {
                 if (su) {
                     return tax_category === checkContract(contract_number, 0)
                 }
-            } else if (isNew === 0){
+            } else if (isNew === 0) {
                 return tax_category
             }
         })
@@ -115,7 +125,7 @@ const checkContract = (contractNumber, isNew) => {
 const reCompute = (frm) => {
     if (!checkContract(frm.doc.subscription_contract, 1)) {
         $.each(frm.doc.programs, (ind, row) => {
-            update_amounts(frm,row.doctype,row.name)
+            update_amounts(frm, row.doctype, row.name)
         })
         frm.dirty()
         frm.set_value('has_recomputed', 1)
@@ -125,7 +135,7 @@ const reCompute = (frm) => {
 }
 const reComputeBillView = (frm, row) => {
     let total_allocation = computeAllocationTotal(row, true)
-    const {tax_category} = frm.doc
+    const { tax_category } = frm.doc
     let less_vat = 0
     let diff_gt = 0
     let gt = 0
@@ -133,7 +143,7 @@ const reComputeBillView = (frm, row) => {
         less_vat = (row.subscription_fee - total_allocation) / 1.12
         row.vat_amount = flt(total_allocation * 0.12, 2)
     } else {
-        less_vat = (row.subscription_fee -  total_allocation)
+        less_vat = (row.subscription_fee - total_allocation)
         row.vat_amount = 0
     }
     row.vat_ird = computeBillTax(tax_category, row.decoder_rate)
@@ -166,7 +176,8 @@ frappe.ui.form.on('PSOF', {
     validate: (frm, cdt, cdn) => {
         const cur_doc = locals[cdt][cdn];
         const program_list = [];
-        if(cur_doc.programs) {
+        const bill_generated = [];
+        if (cur_doc.programs) {
             const subs = cur_doc.programs
                 .map(program => program.subscription_fee)
                 .reduce((total, value) => total + value, 0);
@@ -174,26 +185,53 @@ frappe.ui.form.on('PSOF', {
 
             for (let i = 0; i < cur_doc.programs.length; i++) {
                 program_list.push(cur_doc.programs[i].subscription_program)
+                bill_generated.push(cur_doc.programs[i].bill_generated)
             };
             let checker = new Set(program_list)
-            if(program_list.length !== checker.size) {
+            if (program_list.length !== checker.size) {
                 frappe.throw(__('Duplicate Entries Found\nCheck programs and remove duplicates'));
                 cur_frm.refresh_fields(frm);
             }
+            console.log(bill_generated)
+            if (bill_generated.includes(0)) {
+                frappe.msgprint(__('Kindly generate all programs'));
+            }
         }
     },
+    subscription_contract(frm) {
+        frappe.db.get_value('Customer', frm.doc.customer_name, ['customer_primary_address', 'primary_address']).then(r => {
+            frm.set_value('address_title', r.message.customer_primary_address)
+            frm.set_value('cable_system_address', r.message.primary_address)
+        })
+    },
+
+    address_title(frm) {
+        frappe.db.get_value('Address', frm.doc.address_title, ['address_line1', 'address_line2', 'city', 'country']).then(a => {
+            var r = a.message
+            frm.set_value('cable_system_address', r.address_line1 + '<br>' + (r.address_line2 ? r.address_line2 + '<br>' : '') + r.city + "<br>" + r.country + '<br>');
+
+        })
+        // erpnext.utils.get_address_display(frm, cable_system_address, address_title)
+    },
+
+    // customer_name(frm) {
+    //     frappe.db.get_value('Customer', frm.doc.customer_name, 'customer_primary_address').then(r => {
+    //         console.log(r.message.customer_primary_address)
+    //     })
+    // },
     refresh: (frm) => {
         if (!frm.doc.__unsaved) {
             const cur_programs = frm.doc.programs.map((e) => e.subscription_program).filter((z) => z)
             if (cur_programs.length > 0 && cur_programs) {
-            frm.set_query("subscription_program", "programs", () => {
-                return {
-                    filters: {
-                        name: ["not in", cur_programs]
-                    }
-                }
-            })
-        }
+                // frm.set_query("subscription_program", "programs", () => {
+                //     return {
+                //         filters: {
+                //             name: ["not in", cur_programs]
+                //         }
+                //     }
+                // })
+                console.log(cur_programs)
+            }
             flatFeeToggler(frm)
         }
         frm.set_query("subscription_contract", () => {
@@ -204,6 +242,16 @@ frappe.ui.form.on('PSOF', {
                 }
             }
         })
+        // frm.fields_dict['subscription_contract'].get_query = function(doc, cdt, cdn) {
+        //     return {
+        //         filters: [
+        //             // Add your filter conditions here
+        //             ['docstatus', '=', 1]
+        //         ],
+        //         order_by: "creation DESC"
+        //     };
+        // };
+
         if (frm.doc.subscription_contract && !frm.doc.has_recomputed) {
             reCompute(frm)
         }
@@ -213,6 +261,8 @@ frappe.ui.form.on('PSOF', {
         update_program(frm);
         frm.set_value('subscription_program', '')
         frm.clear_table('bill_view');
+
+
     },
     // onload_post_render: (frm) => {
     //     if (frm.doc.bill_until_renewed) {
@@ -222,6 +272,7 @@ frappe.ui.form.on('PSOF', {
     //         frm.$wrapper.find("[data-fieldname='bill_view']>div.grid-footer").hide()
     //     }
     // },
+
     tax_category: frm => reCompute(frm),
     programs: (frm) => {
         update_program(frm);
@@ -229,7 +280,7 @@ frappe.ui.form.on('PSOF', {
     },
     before_save: (frm) => {
         // cur_frm.call('create_bill', function (r){});
-        cur_frm.call('update_bills', function (r){});
+        cur_frm.call('update_bills', function (r) { });
         cur_frm.refresh_fields();
     },
     after_save: (frm) => {
@@ -240,16 +291,17 @@ frappe.ui.form.on('PSOF', {
         const cur_doc = locals[cdt][cdn];
         const program_list = [];
 
-        if(cur_doc.subscription_program && !(frm.doc.__unsaved && frm.doc.__islocal)) {
+        if (cur_doc.subscription_program && !(frm.doc.__unsaved && frm.doc.__islocal)) {
             frappe.db.get_value('PSOF Program Bill', {
-                    "subscription_program": cur_doc.subscription_program,
-                    "psof": cur_doc.name },
+                "subscription_program": cur_doc.subscription_program,
+                "psof": cur_doc.name
+            },
                 ['subscription_program', 'psof', 'parent'])
                 .then(r => {
                     let program = r.message
-                    if($.isEmptyObject(program)) {
-                        frm.toggle_display(['generate'], true )
-                        frm.toggle_display(['view_bill'], false )
+                    if ($.isEmptyObject(program)) {
+                        frm.toggle_display(['generate'], true)
+                        frm.toggle_display(['view_bill'], false)
                     } else {
                         frm.toggle_display(['generate'], false)
                         frm.toggle_display(['view_bill'], true)
@@ -258,17 +310,17 @@ frappe.ui.form.on('PSOF', {
                 })
 
         } else {
-            frm.toggle_display(['generate'], false )
-            frm.toggle_display(['view_bill'], false )
+            frm.toggle_display(['generate'], false)
+            frm.toggle_display(['view_bill'], false)
         }
 
-        if(cur_doc.programs) {
+        if (cur_doc.programs) {
             for (let i = 0; i < cur_doc.programs.length; i++) {
                 program_list.push(cur_doc.programs[i].subscription_program)
             };
             let p = program_list.includes(cur_doc.subscription_program)
-            if(!p) {
-                if (cur_doc.subscription_program === '' ) {
+            if (!p) {
+                if (cur_doc.subscription_program === '') {
                     return
                 }
                 else {
@@ -281,24 +333,26 @@ frappe.ui.form.on('PSOF', {
         cur_frm.clear_table("bill_view");
         cur_frm.refresh_fields(frm);
     },
-    generate(frm,cdt,cdn) {
+
+    generate(frm, cdt, cdn) {
         const cur_doc = locals[cdt][cdn];
         const programs = frm.doc.programs
         const program_list = [];
-        frm.toggle_display(['generate'], false )
-        frm.toggle_display(['view_bill'], true )
+        frm.toggle_display(['generate'], false)
+        frm.toggle_display(['view_bill'], true)
 
-        if(cur_doc.programs) {
+        if (cur_doc.programs) {
             for (let i = 0; i < cur_doc.programs.length; i++) {
                 program_list.push(cur_doc.programs[i].subscription_program)
             };
-            if(program_list.includes(cur_doc.subscription_program)) {
+            if (program_list.includes(cur_doc.subscription_program)) {
                 for (let program of programs) {
                     if (frm.doc.subscription_program === program.subscription_program) {
                         program.bill_generated = 1
+                        // frm.fields_dict['programs'].grid.get_field('subscription_program').read_only = 1;
                     }
                 }
-                if (cur_doc.subscription_program === undefined ) {}
+                if (cur_doc.subscription_program === undefined) { }
                 // else {
                 //     frappe.throw(__(cur_doc.subscription_program + ' not in the list of programs'))
                 // }
@@ -308,12 +362,12 @@ frappe.ui.form.on('PSOF', {
         }
 
         cur_frm.clear_table("bill_view");
-        cur_frm.call('create_bill', function(r){});
+        cur_frm.call('create_bill', function (r) { });
         cur_frm.refresh_fields(frm);
     },
     view_bill: (frm) => {
         cur_frm.clear_table("bill_view");
-        cur_frm.call('view_new_bill', function(r){})
+        cur_frm.call('view_new_bill', function (r) { })
         cur_frm.refresh_fields(frm);
     },
     flat_fee: (frm) => {
@@ -326,13 +380,13 @@ frappe.ui.form.on('PSOF', {
 });
 
 frappe.ui.form.on("PSOF Program Bill View", {
-    subscription_fee: (frm,cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
-    subscription_rate: (frm,cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
-    decoder_rate: (frm,cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
-    card_rate: (frm,cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
-    promo_rate: (frm,cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
-    freight_rate: (frm,cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
-    form_render: (frm,cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
+    subscription_fee: (frm, cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
+    subscription_rate: (frm, cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
+    decoder_rate: (frm, cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
+    card_rate: (frm, cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
+    promo_rate: (frm, cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
+    freight_rate: (frm, cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
+    // form_render: (frm, cdt, cdn) => reComputeBillView(frm, locals[cdt][cdn]),
     bill_view_add: (frm, cdt, cdn) => {
         const row = locals[cdt][cdn]
         if (frm.doc.bill_until_renewed && frm.doc.bill_view.length >= 1) {
@@ -357,7 +411,6 @@ frappe.ui.form.on("PSOF Program Bill View", {
                     row.free_view = r.free_view
                 }
             })
-
             frm.refresh_field("bill_view")
         }
     }
@@ -369,18 +422,25 @@ frappe.ui.form.on("PSOF Program", {
         let row = locals[cdt][cdn];
         if (row.subscription_program) {
             frappe.confirm(`Are you sure you want to delete ${row.subscription_program}?`,
-            () => {
-                frappe.call({
-                    method: "subscription.subscription.doctype.psof.psof.delete_generated",
-                    args: {'parent': row.name, 'program': row.subscription_program, 'psof': frm.doc.name },
-                    callback: r => {
-                        if (r) {
-                            frappe.msgprint(r.message)
-                        }
-                    },
-                })
-            }, () => frm.reload_doc()
-        );
+                () => {
+                    frappe.call({
+                        method: "subscription.subscription.doctype.psof.psof.delete_generated",
+                        args: { 'parent': row.name, 'program': row.subscription_program, 'psof': frm.doc.name },
+                        callback: r => {
+                            if (r) {
+                                frappe.msgprint(r.message)
+                            }
+                        },
+                    })
+                    //deleted row
+                    setTimeout(() => {
+                        frm.save()
+                    }, "1500")
+
+                },
+                () => frm.reload_doc()
+            );
+
         }
 
         frappe.db.get_value('Program Activation Item', {
@@ -393,7 +453,7 @@ frappe.ui.form.on("PSOF Program", {
                     frappe.msgprint({
                         title: __(`${row.subscription_program} cannot be removed`),
                         message: __(`Program is linked with Activation Module ${program.parent}, click Undo or reload doccument`),
-                        primary_action:{
+                        primary_action: {
                             'label': 'Undo',
                             action(values) {
                                 frm.enable_save();
@@ -420,15 +480,15 @@ frappe.ui.form.on("PSOF Program", {
     programs_add: (frm, cdt, cdn) => {
         const row = locals[cdt][cdn];
         let date = new Date(frm.doc.start_date);
-        let firstDay = frappe.format(new Date(date.getFullYear(), date.getMonth(), 1), {fieldType: 'Date'});
+        let firstDay = frappe.format(new Date(date.getFullYear(), date.getMonth(), 1), { fieldType: 'Date' });
         row.subscription_contract = frm.doc.subscription_contract;
         row.subscription_currency = frm.doc.contract_currency;
         row.customer_name = frm.doc.customer_name;
 
         frappe.db.get_value('PSOF', row.parent, ['expiry_date', 'customer_name']).then(r => {
-            let {customer_name} = r.message;
+            let { customer_name } = r.message;
             row.start_date = firstDay;
-            row.end_date = frappe.format(new Date(date.getFullYear() + 1, date.getMonth(), 0), {fieldType: 'Date'});
+            row.end_date = frappe.format(new Date(date.getFullYear() + 1, date.getMonth(), 0), { fieldType: 'Date' });
             row.customer_name = customer_name
             row.program_status = "<b>Status: Inactive</b> "
 
@@ -438,16 +498,16 @@ frappe.ui.form.on("PSOF Program", {
     //Active Checkbox
     decoder_allocation_active: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
-        if(cur_doc.decoder_allocation_active === 1) {
+        if (cur_doc.decoder_allocation_active === 1) {
         } else {
             cur_doc.decoder_max_bill_count = 0;
         }
         update_amounts(frm, cdt, cdn);
-        frm.refresh_fields ();
+        frm.refresh_fields();
     },
     promo_allocation_active: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
-        if(cur_doc.promo_allocation_active === 1) {
+        if (cur_doc.promo_allocation_active === 1) {
         } else {
             cur_doc.promo_max_bill_count = 0;
         }
@@ -456,7 +516,7 @@ frappe.ui.form.on("PSOF Program", {
     },
     freight_allocation_active: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
-        if(cur_doc.freight_allocation_active === 1) {
+        if (cur_doc.freight_allocation_active === 1) {
         } else {
             cur_doc.freight_max_bill_count = 0;
         }
@@ -465,7 +525,7 @@ frappe.ui.form.on("PSOF Program", {
     },
     card_allocation_active: (frm, cdt, cdn) => {
         var cur_doc = locals[cdt][cdn];
-        if(cur_doc.card_allocation_active === 1) {
+        if (cur_doc.card_allocation_active === 1) {
         } else {
             cur_doc.card_max_bill_count = 0;
         }
@@ -474,17 +534,17 @@ frappe.ui.form.on("PSOF Program", {
     },
     renewal: (frm, cdt, cdn) => {
         const cur_doc = locals[cdt][cdn];
-        if(cur_doc.renewal === 1) {
+        if (cur_doc.renewal === 1) {
             cur_doc.active = 1
             cur_doc.program_status = "<b>Status:</b> Activated by Renewal"
-        } else if(cur_doc.renewal === 0) {
+        } else if (cur_doc.renewal === 0) {
             cur_doc.active = 0
             cur_doc.program_status = "<b>Status:</b> "
         }
         update_amounts(frm, cdt, cdn);
     },
     //Rates
-    subscription_fee:(frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
+    subscription_fee: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
     no_of_subs: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
     subs_display: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
     decoder_rate: (frm, cdt, cdn) => update_amounts(frm, cdt, cdn),
@@ -548,3 +608,21 @@ frappe.ui.form.on("PSOF Program", {
     }
 });
 
+
+// frappe.ui.form.on('PSOF Program', {
+//     subscription_program: function(frm, cdt, cdn) {
+//         var child = locals[cdt][cdn];
+//         frappe.model.set_value(cdt, cdn, 'renewal', frm.doc.renewal);
+//
+//     }
+// });
+
+function hasAllDecimalPlacesAsNine(no_of_subs) {
+    // Convert number to string
+    let strNumber = no_of_subs.toString();
+
+    // Check if the decimal part consists entirely of '9's using regular expression
+    let decimalPart = strNumber.split('.')[1]; // Splitting at the decimal point and taking the part after it
+    if (!decimalPart) return false; // If there's no decimal part, return false
+    return /^99[5-9]/.test(decimalPart);
+}

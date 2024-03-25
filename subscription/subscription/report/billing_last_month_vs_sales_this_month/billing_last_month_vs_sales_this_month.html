@@ -1,9 +1,14 @@
-{% var monthHead = frappe.query_report.columns.slice(1, 3).map((e) => frappe.utils.to_title_case(e.label.split(" ")[1].replace("(", ""))) %}
+<!--{% var monthHead = frappe.query_report.columns.slice(1, 3).map((e) => frappe.utils.to_title_case(e.label.split(" ")[1].replace("(", ""))) %}-->
+{% var monthHead = frappe.query_report.columns.slice(1, 3).map((e) => e.label.split('(')[1].slice(0,-1)) %}
 {% var curYear = moment(filters.mpsof_2, "MM-YYYY-DD").format("YYYY") %}
+{% var SubscriptionPeriod = frappe.query_report.columns.slice(2, 3).map((e) => frappe.utils.to_title_case(e.label.slice(12).replace(")", ""))) %}
+
 <div class="print-head">
     <div class="head-item">
-        <h4>BILLING LAST MONTH VS SALES THIS MONTH (CABLE)</h4>
-        <h4 style="margin-top: -15px;">{{ `${monthHead[1].toUpperCase()} ${curYear}` }}</h4>
+        <h4>BILLING LAST MONTH VS SALES THIS MONTH (CABLE BOSS)</h4>
+        <h4 style="margin-top: -15px;">{{ monthHead[1] }}</h4>
+<!--        <h4 style="margin-top: -15px;">{{ `${SubscriptionPeriod}` }}</h4>-->
+<!--        <h4 style="margin-top: -15px;">{{ `${monthHead[1].toUpperCase()} ${curYear}` }}</h4>-->
     </div>
 </div>
 
@@ -17,7 +22,8 @@
 }, {}))
 %}
 
-{% var monthHead = frappe.query_report.columns.slice(1, 3).map((e) => frappe.utils.to_title_case(e.label.split(" ")[1].replace("(", ""))) %}
+<!--{% var monthHead = frappe.query_report.columns.slice(1, 3).map((e) => frappe.utils.to_title_case(e.label.split(" ")[1].replace("(", ""))) %}-->
+{% var monthHead = frappe.query_report.columns.slice(1, 3).map((e) => e.label.split('(')[1].slice(0,-1)) %}
 
 <table class="table">
     <thead>
@@ -47,8 +53,8 @@
         ${list.map(e => `
         <tr>
             <td colspan="2" style="text-indent: 20px">${e.parent_customer}</td>
-            <td>${e.m1_psof || '' }</td>
-            <td>${e.m2_psof || '' }</td>
+            <td class="text-left">${e.m1_psof || '' }</td>
+            <td class="text-left">${e.m2_psof || '' }</td>
             <td class="text-center bill-row">${format_currency(e.m1_fee, 2) == 0 ? '' : format_currency(e.m1_fee, 2)}</td>
             <td class="text-center sales-row">${format_currency(e.m2_fee, 2) == 0 ? '' : format_currency(e.m2_fee, 2)}</td>
             <td class="text-center var-row">${format_currency(e.variance, 2) == 0 ? '' : format_currency(e.variance, 2)}</td>
@@ -87,8 +93,8 @@
     }
 
     .bill-row, .sales-row, .var-row {
-       text-align: left !important;
-        padding-left: 10px !important;
+       text-align: right !important;
+        padding: 100px !important;
     }
 
     .table > thead > tr > th {
@@ -134,6 +140,18 @@
     .print-format td, .print-format th {
         padding: 1px !important;
     }
+
+    tr:last-child .bill-row {
+                border-bottom: double;
+            }
+
+    tr:last-child .sales-row {
+                border-bottom: double;
+            }
+    tr:last-child .var-row {
+                border-bottom: double;
+            }
+
 </style>
 
 

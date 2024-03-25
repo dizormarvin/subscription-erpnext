@@ -9,9 +9,16 @@ frappe.ui.form.on('Monthly PSOF Billing', {
 
 		if (!frm.doc.__islocal && !frm.doc.generated){
 			frm.add_custom_button(__("Create Billings"), function() {
-				console.log('hey')
-				cur_frm.call('create_bills', function(r){});
-				cur_frm.refresh_fields(frm);
+				if(!frm.doc.posting_date){
+					frappe.throw(__('Select Posting Date First'))
+				}
+				else if(frm.doc.exchange_rate == 0){
+					frappe.throw(__('Add Exchage Rate'))
+				}
+				else{
+					cur_frm.call('create_bills', function(r){});
+					cur_frm.refresh_fields(frm);
+				}
 			});
 		}
 	},

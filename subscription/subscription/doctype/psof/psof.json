@@ -52,7 +52,8 @@
   "bill_view",
   "expiry_date",
   "has_recomputed",
-  "amended_from"
+  "amended_from",
+  "user"
  ],
  "fields": [
   {
@@ -189,7 +190,6 @@
    "label": "Cable System Details"
   },
   {
-   "fetch_from": "customer_name.primary_address",
    "fieldname": "cable_system_address",
    "fieldtype": "Text",
    "label": "Cable System Address",
@@ -230,7 +230,6 @@
    "read_only": 1
   },
   {
-   "fetch_from": "customer_name.customer_primary_address",
    "fieldname": "address_title",
    "fieldtype": "Link",
    "label": "Customer Address",
@@ -370,10 +369,17 @@
    "fieldname": "area_of_operation",
    "fieldtype": "Long Text",
    "label": "Area of Operation"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "user",
+   "options": "User"
   }
  ],
  "links": [],
- "modified": "2023-03-17 10:36:16.032081",
+ "modified": "2024-02-20 10:54:21.166311",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF",

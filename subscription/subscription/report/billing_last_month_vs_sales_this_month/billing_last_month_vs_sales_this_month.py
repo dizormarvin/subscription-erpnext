@@ -24,7 +24,7 @@ def get_subs_period(mpsof):
 
 def process_data(x, filters=None):
     data = x.copy()
-    [d.update({'variance': flt(d.get('m1_fee', 0) - d.get('m2_fee', 0))}) for d in data if d.get('indent') == 2]
+    [d.update({'variance': d.get('m2_fee', 0) - flt(d.get('m1_fee', 0))}) for d in data if d.get('indent') == 2]  # switch
     pd_df = pd.DataFrame(data)
 
     if filters.get('has_variance'):
@@ -39,7 +39,7 @@ def process_data(x, filters=None):
                     [z.get('m1_fee') for z in data if z.get('child_program') == d.get('parent_customer')])
                 data[i]['m2_fee'] = sum(
                     [z.get('m2_fee') for z in data if z.get('child_program') == d.get('parent_customer')])
-                data[i]['variance'] = data[i]['m1_fee'] - data[i]['m2_fee']
+                data[i]['variance'] = data[i]['m2_fee'] - data[i]['m1_fee']
         data.append({
             'parent_customer': 'Total',
             'm1_fee': pd_df.loc[pd_df['indent'] == 2, 'm1_fee'].sum(),
@@ -63,13 +63,6 @@ def _get_columns(filters=None):
             "width": 350,
         },
         {
-            "fieldname": "m1_psof",
-            "label": _(f'{m1} ({get_subs_period(m1)})'),
-            "fieldtype": "Link",
-            "options": 'PSOF',
-            "width": 250,
-        },
-        {
             "fieldname": "m2_psof",
             "label": _(f'{m2} ({get_subs_period(m2)})'),
             "fieldtype": "Link",
@@ -77,17 +70,26 @@ def _get_columns(filters=None):
             "width": 250,
         },
         {
-            "fieldname": "m1_fee",
-            "label": _(f'{m1}'),
-            "fieldtype": "Currency",
-            "width": 120,
+            "fieldname": "m1_psof",
+            "label": _(f'{m1} ({get_subs_period(m1)})'),
+            "fieldtype": "Link",
+            "options": 'PSOF',
+            "width": 250,
         },
+
         {
             "fieldname": "m2_fee",
             "label": _(f'{m2}'),
             "fieldtype": "Currency",
             "width": 100,
         },
+        {
+            "fieldname": "m1_fee",
+            "label": _(f'{m1}'),
+            "fieldtype": "Currency",
+            "width": 120,
+        },
+
         {
             "fieldname": "variance",
             "label": _(f'Variance'),
@@ -107,6 +109,8 @@ def _get_data(filters=None, columns=None):
         frappe.qb.from_(mpsof)
         .select(mpsof.customer_name.as_('customer')).distinct()
         .where(mpsof.parent.isin([mp1, mp2]))
+        .orderby(mpsof.customer_name)
+
     ).run(as_dict=True)
 
     for parent in parent_program:
@@ -122,7 +126,7 @@ def _get_data(filters=None, columns=None):
             'indent': 0,
             'has_value': False,
         }
-        p_data['variance'] = flt(p_data.get('m1_fee') - p_data.get('m2_fee'))
+        p_data['variance'] = p_data.get('m2_fee') - flt(p_data.get('m1_fee') )
         c_data = []
 
         for i, f in enumerate((mp1, mp2)):
@@ -134,8 +138,9 @@ def _get_data(filters=None, columns=None):
                     (mpsof.subscription_program).as_(prefix + 'program'),
                     (mpsof.psof).as_(prefix + 'psof'),
                     (mpsof.subscription_fee).as_(prefix + 'fee')
-                )
+                ).orderby(mpsof.subscription_program)
             )
+            # frappe.msgprint("<pre>{}</pre>".format(q))
 
             for k, v in filters.items():
                 if k in ('mpsof_1', 'mpsof_2', 'has_variance'):
@@ -147,6 +152,7 @@ def _get_data(filters=None, columns=None):
                 else:
                     q = q.where(mpsof[k] == v)
 
+            # frappe.msgprint("<pre>{}</pre>".format(q))
             q = q.where((mpsof.parent == f) & (mpsof.customer_name == parent.get('customer'))).run(as_dict=1)
 
             c_data.append(q)
@@ -154,7 +160,6 @@ def _get_data(filters=None, columns=None):
         n_data = []
         if not len(c_data[0]) and not len(c_data[1]):
             p_data.clear()
-            continue
         elif len(c_data[0]) and len(c_data[1]):
             for i1 in c_data[0]:
                 for i2 in c_data[1]:
@@ -166,6 +171,7 @@ def _get_data(filters=None, columns=None):
                             'child_program': parent.customer,
                             'indent': 2,
                         })
+
             if len(c_data[1]):
                 for i2 in c_data[1]:
                     x = i2

@@ -6,8 +6,8 @@ frappe.query_reports["Billing Last Month VS Sales This Month"] = {
 	parent_field: "parent_customer",
 	name_field: "child_program",
     "filters": [
-		{fieldname: 'mpsof_1', label: __('Monthly Sales'), fieldtype: 'Link', options: 'Monthly PSOF', reqd: true, default: '02-2023-02'},
-		{fieldname: 'mpsof_2', label: __('Against Monthly Sales'), fieldtype: 'Link', options: 'Monthly PSOF', reqd: true, default: '02-2023-01'},
+		{fieldname: 'mpsof_2', label: __('Billing Last Month'), fieldtype: 'Link', options: 'Monthly PSOF', reqd: true, default: '02-2023-01'},
+		{fieldname: 'mpsof_1', label: __('Sales This Month'), fieldtype: 'Link', options: 'Monthly PSOF', reqd: true, default: '02-2023-02'},
 		{fieldname: 'customer_name', label: __('Cable System'), fieldtype: 'Link', options: 'Customer'},
 		{fieldname: 'subscription_program', label: __('Subscription Program'), fieldtype: 'Link', options: 'Subscription Program'},
 		{fieldname: 'psof', label: __('PSOF'), fieldtype: 'Link', options: 'PSOF'},

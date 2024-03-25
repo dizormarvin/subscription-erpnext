@@ -1,18 +1,17 @@
 {
  "category": "Modules",
  "charts": [],
- "creation": "2022-04-19 08:56:01.711792",
+ "creation": "2023-07-05 13:17:36.303144",
  "developer_mode_only": 0,
  "disable_user_customization": 0,
  "docstatus": 0,
  "doctype": "Workspace",
  "extends_another_page": 0,
  "hide_custom": 0,
- "icon": "integration",
  "idx": 0,
  "is_default": 0,
  "is_standard": 1,
- "label": "Subscription",
+ "label": "Subscription For Admin",
  "links": [
   {
    "hidden": 0,
@@ -69,26 +68,17 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Program Activation & Deactivation",
+   "link_to": "Program Activation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "PSOF",
    "link_to": "PSOF",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": " Program Activation Request",
-   "link_to": "Program Activation Request",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Program Activation",
-   "link_to": "Program Activation",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -110,25 +100,23 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Program Activation Request",
+   "link_to": "Program Activation Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2023-07-05 14:11:33.938929",
+ "modified": "2023-07-05 13:35:10.171244",
  "modified_by": "Administrator",
  "module": "Subscription",
- "name": "Subscription",
+ "name": "Subscription For Admin",
  "owner": "Administrator",
  "pin_to_bottom": 0,
  "pin_to_top": 1,
- "shortcuts": [
-  {
-   "color": "#ECAD4B",
-   "doc_view": "List",
-   "format": "",
-   "label": "For Approval",
-   "link_to": "Program Activation Request",
-   "restrict_to_domain": "",
-   "stats_filter": "{\n    \"workflow_state\":[\"not in\", [\"Draft Request\", \"Fulfilled\", \"Rejected\"]]\n}",
-   "type": "DocType"
-  }
- ]
+ "shortcuts": []
 }

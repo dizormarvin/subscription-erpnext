@@ -13,15 +13,48 @@ var get_serials = function(frm, program){
 	});
 }
 
+// OSSPHINC CUSTOM MATERIAL REQUEST
 frappe.ui.form.on("Program Activation", {
 	onload: (frm,cdt,cdn) => {
-		frm.set_query('activation_req', () => {
-			return {
-				filters: {
-					workflow_state: 'Sent to Technical'
-				}
+
+		let activation_req_list = []
+
+		frappe.db.get_list('Program Activation', {
+			fields: ['activation_req'],
+			filters: {
+				workflow_state: ['in',['Technical Assistant', 'For Approval', 'Approved']],
 			}
+		}).then(records => {
+			if(records.length > 0){
+				records.forEach(e =>{
+					//console.log(e.activation_req)
+					activation_req_list.push(e.activation_req)
+				})
+
+			}
+
+			frm.set_query('activation_req', () => {
+				return {
+					filters: {
+						name: ['not in', activation_req_list],
+						workflow_state: 'Sent to Technical'
+					}
+				}
+			})
+
 		})
+
+
+		//original
+		// frm.set_query('activation_req', () => {
+		// 	return {
+		// 		filters: {
+		// 			workflow_state: 'Sent to Technical'
+		//
+		// 		}
+		// 	}
+		// })
+		
 		frm.set_query('psof', () => {
 			return {
 				filters: {
@@ -37,6 +70,7 @@ frappe.ui.form.on("Program Activation", {
 	},
 
 	activation_req: (frm) => {
+
 		frm.clear_table("included_programs")
 		frm.call("load_req")
 		frm.refresh_fields()
@@ -49,6 +83,13 @@ frappe.ui.form.on("Program Activation", {
 		frm.refresh_field('included_programs')
 	},
 
+	// validate: (frm) =>{
+	// 	frm.clear_table("included_programs")
+	// 	frm.call("load_req")
+	// 	frm.call("load_psof_programs")
+	// 	frm.refresh_field('included_programs')
+	// },
+
 	customer_name: (frm, cdt, cdn) => {
 		frm.set_query('psof', () => {
 			return {
@@ -58,6 +99,62 @@ frappe.ui.form.on("Program Activation", {
 			}
 		})
 	}
+
+
 });
+
+
+// frappe.ui.form.on('Program Activation', {
+// 	refresh(frm) {
+// 		// your code here
+// 	},
+//
+// 	onload: function(frm) {
+//     frm.set_query('activation_req', function() {
+//       return {
+//         query: function() {
+//           return frappe.db.get_list('Program Activation Request', {
+//             fields: ['customer', 'workflow_state'],
+//             filters: [
+//               // Add your filters for Sales Invoice here (if any)
+//               ['workflow_state', '=', 'Pending'],
+//               ['workflow_state', '=', ''],
+//             ],
+//             fields: ['customer']
+//           });
+//         }
+//       };
+//     });
+//   }
+//
+// })
+
+//
+// frappe.ui.form.on('Sales Invoice', {
+//     refresh: function(frm) {
+//         // Your custom logic here when the form is refreshed
+//
+//         // Example: Fetching a Sales Invoice document
+//         frappe.call({
+//             method: 'frappe.client.get',
+//             args: {
+//                 doctype: 'Sales Invoice',
+//                 name: frm.doc.name
+//             },
+//             callback: function(response) {
+//                 var salesInvoiceDoc = response.message;
+//
+//                 // Now you can access the fields of the Sales Invoice document
+//                 if (salesInvoiceDoc) {
+//                     console.log('Sales Invoice Total Amount:', salesInvoiceDoc.total);
+//                 }
+//             }
+//         });
+//     },
+//
+//     // Other events and functions can be defined here
+// });
+
+
 
 

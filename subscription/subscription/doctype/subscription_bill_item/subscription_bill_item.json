@@ -38,6 +38,8 @@
   "column_break_17",
   "computed_total",
   "computed_diff",
+  "offset_section",
+  "variance",
   "totals_section",
   "decoder_rate_vat",
   "card_rate_vat",
@@ -161,7 +163,8 @@
    "fieldname": "subscription_rate_ex",
    "fieldtype": "Currency",
    "label": "MSF VAT Ex",
-   "options": "billing_currency"
+   "options": "billing_currency",
+   "precision": "3"
   },
   {
    "fieldname": "computed_vat_ex",
@@ -249,7 +252,7 @@
    "fieldtype": "Currency",
    "label": "IRD Allocation",
    "options": "billing_currency",
-   "precision": "2",
+   "precision": "5",
    "read_only": 1
   },
   {
@@ -259,7 +262,7 @@
    "fieldtype": "Currency",
    "label": "Card Allocation",
    "options": "billing_currency",
-   "precision": "2",
+   "precision": "5",
    "read_only": 1
   },
   {
@@ -269,6 +272,7 @@
    "fieldtype": "Currency",
    "label": "Promo Allocation",
    "options": "billing_currency",
+   "precision": "5",
    "read_only": 1
   },
   {
@@ -278,7 +282,7 @@
    "fieldtype": "Currency",
    "label": "Freight Allocation",
    "options": "billing_currency",
-   "precision": "2",
+   "precision": "5",
    "read_only": 1
   },
   {
@@ -422,12 +426,24 @@
    "label": "Tax Category",
    "options": "Tax Category",
    "read_only": 1
+  },
+  {
+   "fieldname": "offset_section",
+   "fieldtype": "Section Break",
+   "label": "Offset"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "variance",
+   "fieldtype": "Float",
+   "label": "Variance",
+   "precision": "9"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-04-28 15:29:10.251028",
+ "modified": "2023-05-25 17:41:30.454927",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Bill Item",

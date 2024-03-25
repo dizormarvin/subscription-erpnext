@@ -46,24 +46,57 @@ class MonthlyPSOF(Document):
         end_date = end_date.strftime('%Y-%m-%d')
         srate, sfee, drate, crate, prate, frate = 0, 0, 0, 0, 0, 0
 
+#orginal
+        # program_bills = frappe.db.sql(f"""
+        # SELECT
+        #     account_manager, psof, customer_name,
+        #     subscription_program, name, date_from, date_to,
+        #     no_of_subs, ROUND(subscription_fee, 2) as sfee,
+        #     ROUND(subscription_rate, 2) as srate, ROUND(decoder_rate, 2) as drate,
+        #     ROUND(card_rate, 2) as crate, ROUND(freight_rate, 2) as frate,
+        #     ROUND(promo_rate, 2) as prate, ROUND(vat_amount, 2) as vat
+        # FROM
+        #     `tabPSOF Program Bill`
+        # WHERE
+        #     date_from
+        #         BETWEEN '{start_date}' AND '{end_date}'
+        #     AND
+        #     active = 1
+        #     AND
+        #     free_view = 0
+        #         """, as_dict=1)
+
         program_bills = frappe.db.sql(f"""
-        SELECT 
-            account_manager, psof, customer_name,
-            subscription_program, name, date_from, date_to,
-            no_of_subs, ROUND(subscription_fee, 2) as sfee,
-            ROUND(subscription_rate, 2) as srate, ROUND(decoder_rate, 2) as drate,
-            ROUND(card_rate, 2) as crate, ROUND(freight_rate, 2) as frate,
-            ROUND(promo_rate, 2) as prate, ROUND(vat_amount, 2) as vat
-        FROM 
-            `tabPSOF Program Bill` 
-        WHERE 
-            date_from 
-                BETWEEN '{start_date}' AND '{end_date}' 
-            AND 
-            active = 1
-            AND
-            free_view = 0
-                """, as_dict=1)
+                SELECT 
+                    pb.account_manager as account_manager, 
+                    pb.psof as psof, 
+                    pb.customer_name as customer_name,
+                    pb.subscription_program as subscription_program, 
+                    pb.name as name, 
+                    pb.date_from as date_from, 
+                    pb.date_to as date_to,
+                    pb.no_of_subs as no_of_subs, 
+                    ROUND(pb.subscription_fee, 2) as sfee,
+                    ROUND(pb.subscription_rate, 2) as srate, 
+                    ROUND(pb.decoder_rate, 2) as drate,
+                    ROUND(pb.card_rate, 2) as crate, 
+                    ROUND(pb.freight_rate, 2) as frate,
+                    ROUND(pb.promo_rate, 2) as prate, 
+                    ROUND(pb.vat_amount, 2) as vat
+                FROM 
+                    `tabPSOF Program Bill` pb
+                left join `tabPSOF` p on p.name = pb.psof
+                left join `tabSubscription Contract` sc on p.subscription_contract = sc.name
+                WHERE 
+                    pb.date_from 
+                        BETWEEN '{start_date}' AND '{end_date}' 
+                    AND 
+                    pb.active = 1
+                    AND
+                    pb.free_view = 0
+                    AND
+                    sc.docstatus = 1
+                        """, as_dict=1)
 
         for i in program_bills:
             customer = frappe.get_doc("Customer", i.customer_name)

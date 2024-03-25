@@ -246,7 +246,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2022-07-13 11:29:04.297280",
+ "modified": "2024-03-08 17:42:31.424481",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Contract",
@@ -277,6 +277,7 @@
    "write": 1
   }
  ],
+ "search_fields": "contract_number, tax_category, sales_partner",
  "sort_field": "modified",
  "sort_order": "DESC",
  "title_field": "customer_name",
