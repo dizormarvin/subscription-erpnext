@@ -4,8 +4,10 @@
 
 from __future__ import unicode_literals
 import frappe
+import json
 from frappe.model.document import Document
 from frappe.utils import flt, rounded
+from datetime import datetime
 
 
 def evaluate_cond(dif):
@@ -39,11 +41,30 @@ class PSOFProgram(Document):
         self.db_set("program_status", f"<b>Status:</b> {' - '.join([stat for stat in status if stat])}")
 
     def set_programs_status(self, action, date):
+        # convert date to string
+        date_str = date.isoformat()
+        confirmation_datetime = datetime.strptime(date_str, '%Y-%m-%d')
+
+        # calculate the day of the month for the confirmation date
+        confirmation_day = confirmation_datetime.day
+        # execution_datetime = confirmation_datetime.replace(day=1) if action == 'Deactivate' else date
+
+        # calculate the execution date based on the confirmation date
+        # if confirmation_day <= 15:
+        #     execution_datetime = confirmation_datetime.replace(day=1) if action == 'Deactivate' else date
+        # else:
+        #     # Subtract one day from the confirmation date
+        #     execution_datetime = confirmation_datetime.replace(day=1) if action == 'Deactivate' else date
+        execution_datetime = confirmation_datetime.replace(day=1)
+
+        # Convert execution_datetime to a string in the desired format
+        execution_date = execution_datetime.strftime('%Y-%m-%d')
+
         bills = frappe.db.get_list('PSOF Program Bill', filters={
             'subscription_program': self.subscription_program,
             'psof': self.parent,
             'active': 0 if action == 'Activate' else 1,
-            "date_from": [">=", date]
+            "date_from": [">=", execution_date]
         }, fields=['name'])
 
         for bill in bills:
@@ -91,4 +112,5 @@ class PSOFProgram(Document):
         self.difference_grand_total = self.subscription_fee - self.grand_total
         self.subscription_rate = self.less_of_vat_original + self.difference_grand_total
         self.no_of_subs = rounded(self.less_of_vat_original / self.rate_per_sub)
+
     

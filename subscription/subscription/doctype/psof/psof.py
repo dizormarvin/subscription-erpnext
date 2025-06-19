@@ -39,11 +39,33 @@ class PSOF(Document):
         self.db_set("monthly_subs_fee_total", sum(program.get("subscription_fee") for program in self.get("programs")))
 
     def autoname(self):
+        old_psof = frappe.get_doc("Subscription Contract", self.subscription_contract)
+        # RENAME DUMMY SC
         if self.bill_until_renewed:
             prefix = "D"
-            old_psof = frappe.get_doc("Subscription Contract", self.subscription_contract)
             name = old_psof.get("psof").split("-")
+
             self.name = f"{name[0]}-{name[1]}-{prefix}{int(name[2][1:]) + 1}" if len(name) > 2 else f"{name[0]}-{name[1]}-{prefix}{1}"
+
+            if len(name) == 3 and name[2][0:1] == 'D':
+                self.name = f"{name[0]}-{name[1]}-{prefix}{int(name[2][1:]) + 1}"
+            elif len(name) == 3 and name[2][0:1] == 'A':
+                self.name = f"{name[0]}-{name[1]}-{name[2]}-{prefix}{int(name[2][1:]) + 0 if name[2][0:1] == 'A' else 1}"
+            elif len(name) == 4:
+                self.name = f"{name[0]}-{name[1]}-{name[2]}-{prefix}{int(name[2][1:]) + 1}"
+            else:
+                self.name = f"{name[0]}-{name[1]}-{prefix}{1}"
+
+        # RENAME AMEND SC
+        if old_psof.get('revised'):
+            name = old_psof.get("psof").split("-")
+
+            suffix = "A"
+            count = frappe.db.sql(f"""                                                                                                   
+                select count(name) as next_count from `tabPSOF` where name like '%{name[1]}%' and name not like '%D%'
+            """, as_dict=1)
+
+            self.name = f"{name[0]}-{name[1]}-{suffix}{count[0].get('next_count')}"
 
     def validate_bills(self, bill):
         if frappe.db.exists({
@@ -56,24 +78,161 @@ class PSOF(Document):
             frappe.throw(f"""<h4>Bill dated from {bill.date_from} to {bill.date_to}
             <br>For {bill.subscription_program} already exists</h4>""")
 
+    # @frappe.whitelist()
+    # def create_bill(self):
+    #     progs = frappe.db.sql("""SELECT * FROM `tabPSOF Program` WHERE parent = %s AND subscription_program = %s""",
+    #                           (self.name, self.subscription_program), as_dict=1)
+    #
+    #     # get data from server
+    #     for i in progs:
+    #         # original
+    #         start_check = i.supersede_date if i.renewal and not i.for_cb else i.start_date
+    #         start = start_check if start_check else i.start_date
+    #
+    #         # start = i.supersede_date if hasattr(i, 'supersede_date') and i.renewal else other_date if not hasattr(i, 'supersede_date') and i.renewal else i.start_date
+    #         end = i.end_date
+    #         decoder_count = 0
+    #         card_count = 0
+    #         promo_count = 0
+    #         freight_count = 0
+    #         row = 0
+    #
+    #         while start < end:
+    #             doc = frappe.new_doc("PSOF Program Bill")
+    #             doc.psof = self.name
+    #             doc.subscription_program = self.subscription_program
+    #             doc.date_from = start
+    #             doc.date_to = add_days(add_months(start, +1), -1)
+    #             doc.no_of_subs = i.no_of_subs
+    #             doc.subscription_fee = i.subscription_fee
+    #             doc.subscription_rate = i.subscription_rate
+    #             doc.vat_amount = i.vat_amount
+    #             doc.customer_name = self.customer_name
+    #             doc.subscription_contract = i.subscription_contract
+    #             doc.account_manager = self.account_manager
+    #             doc.active = 1 if i.renewal == 1 or i.active == 1 else 0
+    #             doc.currency_used = i.subscription_currency
+    #             doc.parent_bill = i.name
+    #             doc.dummy = i.include_in_bill_expired_until_renewed
+    #             doc.renewal = i.renewal
+    #
+    #             # Added on 1-29-21, recomputes data for 1st row to solve round-off error
+    #
+    #             if row == 0:
+    #                 if i.decoder_difference:
+    #                     doc.decoder_rate = i.decoder_rate + i.decoder_difference
+    #                     doc.subscription_rate = doc.subscription_rate - i.decoder_difference
+    #                 else:
+    #                     doc.decoder_rate = i.decoder_rate
+    #                 if i.card_difference:
+    #                     doc.card_rate = i.card_rate + i.card_difference
+    #                     doc.subscription_rate = doc.subscription_rate - i.card_difference
+    #                 else:
+    #                     doc.card_rate = i.card_rate
+    #                 if i.promo_difference:
+    #                     doc.promo_rate = i.promo_rate + i.promo_difference
+    #                     doc.subscription_rate = doc.subscription_rate - i.promo_difference
+    #                 else:
+    #                     doc.promo_rate = i.promo_rate
+    #                 if i.freight_difference:
+    #                     doc.freight_rate = i.freight_rate + i.freight_difference
+    #                     doc.subscription_rate = doc.subscription_rate - i.freight_difference
+    #                 else:
+    #                     doc.freight_rate = i.freight_rate
+    #             else:
+    #                 if i.decoder_max_bill_count > decoder_count:
+    #                     doc.decoder_rate = i.decoder_rate
+    #                 else:
+    #                     doc.subscription_rate = doc.subscription_rate + i.decoder_rate
+    #
+    #                 if i.card_max_bill_count > card_count:
+    #                     doc.card_rate = i.card_rate
+    #                 else:
+    #                     doc.subscription_rate = doc.subscription_rate + i.card_rate
+    #
+    #                 if i.promo_max_bill_count > promo_count:
+    #                     doc.promo_rate = i.promo_rate
+    #                 else:
+    #                     doc.subscription_rate = doc.subscription_rate + i.promo_rate
+    #
+    #                 if i.freight_max_bill_count > freight_count:
+    #                     doc.freight_rate = i.freight_rate
+    #                 else:
+    #                     doc.subscription_rate = doc.subscription_rate + i.freight_rate
+    #
+    #             doc.flags.ignore_mandatory = True
+    #             self.validate_bills(doc)
+    #             doc.insert()
+    #             start = add_months(start, +1)
+    #             row += 1
+    #             decoder_count = decoder_count + 1
+    #             card_count = card_count + 1
+    #             promo_count = promo_count + 1
+    #             freight_count = freight_count + 1
+    #
+    #     self.update_program_status()
+    #
+    #     # db containing data from PSOF
+    #
+    #     view = self.alter_view()
+    #
+    #     # send data to client
+    #     for i in view:
+    #         self.append('bill_view', {
+    #             "active": i.active,
+    #             "subscription_program": i.subscription_program,
+    #             "date_from": i.date_from,
+    #             "date_to": i.date_to,
+    #             "no_of_subs": i.no_of_subs,
+    #             "subscription_fee": i.subscription_fee,
+    #             "subscription_rate": i.subscription_rate,
+    #             "decoder_rate": i.decoder_rate,
+    #             "card_rate": i.card_rate,
+    #             "promo_rate": i.promo_rate,
+    #             "freight_rate": i.freight_rate,
+    #             "psof_program_bill": i.name,
+    #             "vat_amount": i.vat_amount,
+    #             "currency_used": i.currency_used
+    #         })
+
+    # OSSPHINC MARVIN REVISION CABLE BOSS FOR PROGRAM BILL or PROGRAM VIEW BILL
     @frappe.whitelist()
     def create_bill(self):
-        progs = frappe.db.sql("""SELECT * FROM `tabPSOF Program` WHERE parent = %s AND subscription_program = %s""",
-                              (self.name, self.subscription_program), as_dict=1)
+        progs = frappe.db.sql("""
+            SELECT * FROM `tabPSOF Program`
+            WHERE parent = %s AND subscription_program = %s
+        """, (self.name, self.subscription_program), as_dict=1)
 
-        # get data from server
         for i in progs:
-            # original
-            start = i.supersede_date if i.renewal and not i.for_cb else i.start_date
-            # start = i.supersede_date if hasattr(i, 'supersede_date') and i.renewal else other_date if not hasattr(i, 'supersede_date') and i.renewal else i.start_date
+            start_check = i.supersede_date if i.renewal and not i.for_cb else i.start_date
+            start = start_check if start_check else i.start_date
             end = i.end_date
-            decoder_count = 0
-            card_count = 0
-            promo_count = 0
-            freight_count = 0
-            row = 0
 
-            while start < end:
+            rate = i.subscription_fee
+
+            bill_count = 1
+
+            while start <= end:
+                current_ird = i.decoder_rate if bill_count <= i.decoder_max_bill_count else 0
+                current_promo = i.promo_rate if bill_count <= i.promo_max_bill_count else 0
+                current_freight = i.freight_rate if bill_count <= i.freight_max_bill_count else 0
+                current_card = i.card_rate if bill_count <= i.card_max_bill_count else 0
+
+                if bill_count == 1:
+                    current_ird += i.decoder_difference
+                    current_promo += i.promo_difference
+                    current_freight += i.freight_difference
+                    current_card += i.card_difference
+
+                deductions = current_ird + current_promo + current_freight + current_card
+
+                if i.subscription_fee <= deductions:
+                    frappe.throw("Total Allocation is higher than Subscription Fee")
+
+                net = i.subscription_fee - deductions
+                subsfee = net / 1.12
+                vat = net - subsfee
+
                 doc = frappe.new_doc("PSOF Program Bill")
                 doc.psof = self.name
                 doc.subscription_program = self.subscription_program
@@ -81,8 +240,8 @@ class PSOF(Document):
                 doc.date_to = add_days(add_months(start, +1), -1)
                 doc.no_of_subs = i.no_of_subs
                 doc.subscription_fee = i.subscription_fee
-                doc.subscription_rate = i.subscription_rate
-                doc.vat_amount = i.vat_amount
+                doc.subscription_rate = subsfee
+                doc.vat_amount = vat
                 doc.customer_name = self.customer_name
                 doc.subscription_contract = i.subscription_contract
                 doc.account_manager = self.account_manager
@@ -92,59 +251,16 @@ class PSOF(Document):
                 doc.dummy = i.include_in_bill_expired_until_renewed
                 doc.renewal = i.renewal
 
-                # Added on 1-29-21, recomputes data for 1st row to solve round-off error
-
-                if row == 0:
-                    if i.decoder_difference:
-                        doc.decoder_rate = i.decoder_rate + i.decoder_difference
-                        doc.subscription_rate = doc.subscription_rate - i.decoder_difference
-                    else:
-                        doc.decoder_rate = i.decoder_rate
-                    if i.card_difference:
-                        doc.card_rate = i.card_rate + i.card_difference
-                        doc.subscription_rate = doc.subscription_rate - i.card_difference
-                    else:
-                        doc.card_rate = i.card_rate
-                    if i.promo_difference:
-                        doc.promo_rate = i.promo_rate + i.promo_difference
-                        doc.subscription_rate = doc.subscription_rate - i.promo_difference
-                    else:
-                        doc.promo_rate = i.promo_rate
-                    if i.freight_difference:
-                        doc.freight_rate = i.freight_rate + i.freight_difference
-                        doc.subscription_rate = doc.subscription_rate - i.freight_difference
-                    else:
-                        doc.freight_rate = i.freight_rate
-                else:
-                    if i.decoder_max_bill_count > decoder_count:
-                        doc.decoder_rate = i.decoder_rate
-                    else:
-                        doc.subscription_rate = doc.subscription_rate + i.decoder_rate
-
-                    if i.card_max_bill_count > card_count:
-                        doc.card_rate = i.card_rate
-                    else:
-                        doc.subscription_rate = doc.subscription_rate + i.card_rate
-
-                    if i.promo_max_bill_count > promo_count:
-                        doc.promo_rate = i.promo_rate
-                    else:
-                        doc.subscription_rate = doc.subscription_rate + i.promo_rate
-
-                    if i.freight_max_bill_count > freight_count:
-                        doc.freight_rate = i.freight_rate
-                    else:
-                        doc.subscription_rate = doc.subscription_rate + i.freight_rate
+                doc.decoder_rate = current_ird
+                doc.freight_rate = current_freight
+                doc.promo_rate = current_promo
+                doc.card_rate = current_card
 
                 doc.flags.ignore_mandatory = True
                 self.validate_bills(doc)
                 doc.insert()
+                bill_count += 1
                 start = add_months(start, +1)
-                row += 1
-                decoder_count = decoder_count + 1
-                card_count = card_count + 1
-                promo_count = promo_count + 1
-                freight_count = freight_count + 1
 
         self.update_program_status()
 
@@ -170,6 +286,8 @@ class PSOF(Document):
                 "vat_amount": i.vat_amount,
                 "currency_used": i.currency_used
             })
+
+
 
     @frappe.whitelist()
     def update_bills(self):
@@ -292,6 +410,29 @@ def create_dummy(contract=None, extend=None):
     dummy_contract.save()
     return dummy_contract.name
 
+# ossphinc04112023 create new contract then inactive
+@frappe.whitelist()
+def create_new_contract(contract=None, revised_expired=None, extend=None):
+    original_contract = frappe.get_doc("Subscription Contract", contract)
+    original_name = original_contract.get("name")
+    new_contract = frappe.get_doc({
+        'doctype': 'Subscription Contract',
+        'customer': original_contract.get("customer"),
+        'contract_number': contract,
+        'bill_expired': 0,
+        'revised': 0 if original_contract.status == "Expired" else 1,
+        'revised_expired': revised_expired,
+        'contract_date': nowdate(),
+        "extension": extend,
+        'start_date': original_contract.start_date,
+        'expiry_date': original_contract.expiry_date,
+        'reference_contract': original_name,
+    })
+    new_contract.save()
+    return new_contract.name
+
+
+
 
 @frappe.whitelist()
 def supersede_dummy(contract=None, cb=None):
@@ -309,3 +450,10 @@ def supersede_dummy(contract=None, cb=None):
 
     dummy_contract.save()
     return dummy_contract.name
+
+@frappe.whitelist()
+def get_customer(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
+    frappe.msgprint('test')
+    return frappe.db.get_list('Customer',
+                              fields=['name', 'customer_group'],
+                              filters={'customer_group': 'AFFILIATES'}, order_by='creation desc', as_list=True)

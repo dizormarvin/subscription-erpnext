@@ -24,6 +24,7 @@ def get_subs_period(mpsof):
 
 def process_data(x, filters=None):
     data = x.copy()
+    frappe.msgprint(data)
     [d.update({'variance': d.get('m2_fee', 0) - flt(d.get('m1_fee', 0))}) for d in data if d.get('indent') == 2]  # switch
     pd_df = pd.DataFrame(data)
 

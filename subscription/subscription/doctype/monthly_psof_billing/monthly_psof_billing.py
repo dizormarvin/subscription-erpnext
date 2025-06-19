@@ -13,7 +13,10 @@ from collections import Counter
 from functools import reduce
 from operator import add
 import time
-
+from collections import defaultdict
+from itertools import groupby
+from operator import itemgetter
+import json
 
 class MonthlyPSOFBilling(Document):
     """Monthly Billing Generation"""
@@ -32,8 +35,6 @@ class MonthlyPSOFBilling(Document):
         frappe.db.delete("Digital SOA Payment", {'subscription_period': self.name})
 
         frappe.db.delete("Sales Invoice", {'subs_period': self.name})
-
-        si = frappe.get_doc("Sales Invoice", {'subs_period': 'AUGUST 2025'})
 
         for items in self.get("billings"):
             frappe.db.delete("GL Entry", {'subscription_bill': items.bill_no})
@@ -121,6 +122,15 @@ class MonthlyPSOFBilling(Document):
                 indicator='red',
                 raise_exception=True
             )
+        #
+        # prepared_doc = frappe.new_doc('Prepared Report')
+        # prepared_doc.docstatus = 0
+        # prepared_doc.status = 'Queued'
+        # prepared_doc.report_name = "Monthly Sales Generation Sales Invoice"
+        # prepared_doc.ref_report_doctype = 'Monthly Sales Generation Sales Invoice'
+        # prepared_doc.owner = 'Administrator'
+        # prepared_doc.doctype = 'Prepared Report'
+        # prepared_doc.insert()
 
     def after_insert(self):
         pass
@@ -141,6 +151,7 @@ class MonthlyPSOFBilling(Document):
 
         for bill in bills:
             bill.create_invoices()
+
 
     def create_journal_entries(self):
         mpsof = frappe.db.get_list("Monthly PSOF Bill", {"parent": self.name}, as_dict=1)
@@ -297,268 +308,189 @@ class MonthlyPSOFBilling(Document):
     def create_bills(self):
         digitals = []
         soa_payment = []
+        sales_bills = frappe.db.sql(f"""
+            SELECT
+                d.customer_name as customer_name,
+                d.parent as parent,
+                d.psof as psof,
+                d.customer as customer,
+                d.assistant as assistant_manager,
+                d.account_manager as account_manager,
+                h.subscription_period as subscription_period,
+                d.tax_category as tax_category,
+                ROUND(b.exchange_rate, 2) as exchange_rate,
+                ROUND(date_from, 2) as date_from,
+                ROUND(date_to, 2) as date_to,
+                subscription_program,
+                contract,
+                ROUND(contract_start, 2) as contract_start,
+                ROUND(contract_end, 2) as contract_end,
+                ROUND(subscription_fee, 2) as subs_fee,
+                
+                
+                
+                
+                
+                ROUND(subscription_fee * {self.exchange_rate}, 2) as subscription_fee,
+                ROUND(subscription_fee * {self.exchange_rate}, 2) - ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {self.exchange_rate}, 2) as subscription_rate_inc,
+                ROUND((ROUND(subscription_fee * {self.exchange_rate}, 2) - ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {self.exchange_rate}, 2)) / 1.12, 2) as subscription_rate_ex1,
+                ROUND(subscription_rate * {self.exchange_rate}, 2) as subscription_rate_ex,
+                ROUND(subscription_fee * {self.exchange_rate}, 2) - ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {self.exchange_rate}, 2) - ROUND((ROUND(subscription_fee * {self.exchange_rate}, 2) - ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {self.exchange_rate}, 2)) / 1.12, 2) as vat1,
+                ROUND(vat * {self.exchange_rate}, 2) as vat,
+                ROUND(decoder_rate * {self.exchange_rate}, 2) as decoder_rate_vat,
+                ROUND(card_rate * {self.exchange_rate}, 2) as card_rate_vat,
+                ROUND(promo_rate * {self.exchange_rate}, 2) as promo_rate_vat,
+                ROUND(freight_rate * {self.exchange_rate}, 2) as freight_rate_vat,
+                ROUND(decoder_rate * {self.exchange_rate} / 1.12, 2) as decoder_rate,
+                ROUND(card_rate * {self.exchange_rate} / 1.12, 2) as card_rate,
+                ROUND(promo_rate * {self.exchange_rate} / 1.12, 2) as promo_rate,
+                ROUND(freight_rate * {self.exchange_rate} / 1.12, 2) as freight_rate,
+                ROUND(decoder_rate * {self.exchange_rate}, 2) - ROUND(decoder_rate * {self.exchange_rate} / 1.12, 2) as decoder_diff,
+                ROUND(card_rate * {self.exchange_rate}, 2) - ROUND(card_rate * {self.exchange_rate} / 1.12, 2) as card_diff,
+                ROUND(promo_rate * {self.exchange_rate}, 2) - ROUND(promo_rate * {self.exchange_rate} / 1.12, 2) as promo_diff,
+                ROUND(freight_rate * {self.exchange_rate}, 2) - ROUND(freight_rate * {self.exchange_rate} / 1.12, 2) as freight_diff,
+                ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {self.exchange_rate}, 2) as total_alloc_vat,
+                ROUND(((freight_rate + card_rate + decoder_rate + promo_rate) * {self.exchange_rate}) / 1.12, 2) as total_alloc,
+                ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {self.exchange_rate}, 2) - ROUND(((freight_rate + card_rate + decoder_rate + promo_rate) * {self.exchange_rate}) / 1.12, 2) as total_diff,
+                'self.name' as created_from,
+                
+                
+                
+                round(((card_rate + freight_rate + promo_rate + decoder_rate) * {self.exchange_rate} / 1.12) * .12, 2) + round(((subscription_fee  - (card_rate + freight_rate + promo_rate + decoder_rate)) * {self.exchange_rate} / 1.12) * .12, 2) as amount_vat,
+                round((subscription_fee  - (card_rate + freight_rate + promo_rate + decoder_rate)) * {self.exchange_rate} / 1.12, 2) as amount
+                
+                
+                
+                
+            FROM
+                `tabMonthly PSOF` h,
+                `tabMonthly PSOF Program Bill` d,
+                `tabSubscription Period` p,
+                `tabMonthly PSOF Billing` b
+            WHERE
+                h.name = d.parent
+                AND
+                h.name = '{self.monthly_psof}'
+                AND
+                h.subscription_period = p.name
+                and h.name = b.monthly_psof
+            order by customer
+            
+                ;""", as_dict=1)
 
-        sales_bills = frappe.db.sql("""
-            SELECT 
-                d.customer, 
-                h.date, 
-                h.subscription_period,
-                h.currency, 
-                p.exchange_rate, 
-                p.end_date,
-                d.psof, 
-                d.parent,
-                d.account_manager, 
-                d.tax_category as tx
-            FROM 
-                `tabMonthly PSOF` h, 
-                `tabMonthly PSOF Program Bill` d, 
-                `tabSubscription Period` p
-            WHERE 
-                    h.name = d.parent 
-                AND 
-                    h.name = %s
-                AND 
-                    h.subscription_period = p.name
-                GROUP BY 
-                    d.customer, 
-                    h.date, 
-                    h.subscription_period, 
-                    p.exchange_rate; """, self.monthly_psof, as_dict=1)
+        consolidated_data = {}
+        # Group data by customer
+        for entry in sales_bills:
+            customer_id = entry["customer"]
+            if customer_id not in consolidated_data:
+                consolidated_data[customer_id] = []
+            consolidated_data[customer_id].append(entry)
 
-        period = frappe.get_doc("Subscription Period", self.subscription_period)
+        consolidated_result = []
 
-        def vat_(rate):
-            if not rate:
-                return 0
-            return flt(rate / 1.12)
+        for customer_id, entries in consolidated_data.items():
+            header = {
+                "customer": customer_id,
+                "customer_name": entries[0]["customer_name"],
+                "tax_category": entries[0]["tax_category"],
+                "contract": entries[0]["contract"],
+                "subscription_period": entries[0]["subscription_period"],
+                "account_manager": entries[0]["account_manager"],
+                "parent": entries[0]["parent"],
+                # "psof": entries[0]["psof"],
+                "exchange_rate": entries[0]["exchange_rate"]
+            }
+            child_table = [{key: value for key, value in entry.items() if key not in header} for entry in entries]
+            consolidated_result.append({"header": header, "child_table": child_table})
 
-        def sum_(lists):
-            return flt(sum([flt(i) for i in lists]), 2)
+        # Print or do whatever you want with consolidated_result
 
-        def round2(rate):
-            return frappe.db.sql(f"SELECT ROUND({rate}, 2)")[0][0]
+        for item in consolidated_result:
+            header = item["header"]
+            childs = item["child_table"]
 
-        def round_convert(rate, exchange_rate=self.exchange_rate):
-            return frappe.db.sql(f"SELECT ROUND({rate} * {exchange_rate}, 2)")[0][0]
-
-        def get_difference(rate):
-            if not rate:
-                return 0
-            return rate - vat_(rate)
-
-        def check_last_digit(num):
-            last_digit = int(str(num)[-1])  # Get the last digit as an integer
-
-            if last_digit == 5:
-                num += .001
-
-            return num
-
-        for bill in sales_bills:
-            customer_ = frappe.get_doc("Customer", bill.customer)
+            customer_ = frappe.get_doc("Customer", header['customer'])
             doc = frappe.new_doc("Subscription Bill")
-            doc.customer = bill.customer
-            doc.customer_name = bill.customer_name
+            doc.customer = header['customer']
+            doc.customer_name = header['customer_name']
             # doc.bill_date = bill.date
             doc.bill_date = self.posting_date
-            doc.subscription_period = bill.subscription_period
+            doc.subscription_period = header['subscription_period']
             doc.due_date = get_due_date(doc.bill_date, "Customer", doc.customer)
-            doc.exchange_rate = self.exchange_rate
-            doc.account_manager = bill.account_manager
+            doc.exchange_rate = header['exchange_rate']
+            doc.account_manager = header['account_manager']
             doc.assistant = customer_.billing_assistant
-            doc.monthly_psof = bill.parent
-            doc.psof = bill.psof
+            doc.monthly_psof = header['parent']
+            # doc.psof = header['psof']
+            doc.total_in_php = sum(i.get('subscription_fee') for i in childs)
+            doc.total_in_usd = sum(i.get('subs_fee') for i in childs)
 
-            sbill_items = frappe.db.get_all('Monthly PSOF Program Bill',
-                                            {'parent': self.monthly_psof,
-                                             'customer': bill.customer},
-                                            ['subscription_fee as sfee', 'subscription_rate as srate', 'vat',
-                                             'decoder_rate as drate', 'promo_rate as prate', 'freight_rate as frate',
-                                             'card_rate as crate', 'subscription_program as program', 'psof'])
+            for child in childs:
+                # newamount = (child.get("subscription_fee") - (child.get("decoder_rate_vat") + child.get("freight_rate_vat") + child.get("promo_rate_vat") + child.get("card_rate_vat"))) / 1.12
+                # newvat = ((((child.get("subscription_fee")) - ((child.get("decoder_rate_vat")) + (child.get("card_rate_vat")) + (child.get("promo_rate_vat")) + (child.get("freight_rate_vat")))) / 1.12) * .12) + (child.get("decoder_diff")) + (child.get("card_diff")) + (child.get("promo_diff")) + (child.get("freight_diff"))
+                # computed_diff = flt((child.get("subscription_fee") - (newamount + child.get("decoder_rate") + child.get("freight_rate") + child.get("promo_rate") + child.get("card_rate") + newvat)))
+                doc.append('items',
+                        {
+                            "created_from": self.monthly_psof,
+                            'customer': doc.customer,
+                            'subscription_period': doc.subscription_period,
+                            'bill_date': doc.bill_date,
+                            "subscription_program": child.get('subscription_program'),
+                            "subs_fee": child.get('subs_fee'),
+                            "subscription_fee": child.get('subscription_fee'),
+                            "subscription_rate_inc": child.get('subscription_rate_inc'),
+                            "subscription_rate_ex": child.get('subscription_rate_ex'),
+                            'vat': child.get('vat'),
+                            # 'exchange_rate': self.exchage_rate,
+                            'exchange_rate': child.get('exchange_rate'),
 
-            totals = {
-                't_msf': 0,
-                't_diff': 0,
-                't_vat_ex': 0,
-                't_vat': 0,
-                'msf': sum([i['sfee'] for i in sbill_items]),
-                'decoder': sum([i['drate'] for i in sbill_items]),
-                'promo': sum([i['prate'] for i in sbill_items]),
-                'freight': sum([i['frate'] for i in sbill_items]),
-                'card': sum([i['crate'] for i in sbill_items]),
-                'php_msf': sum([round_convert(i['sfee']) for i in sbill_items]),
-                'php_drate': sum([round_convert(i['drate']) for i in sbill_items]),
-                'php_prate': sum([round_convert(i['prate']) for i in sbill_items]),
-                'php_frate': sum([round_convert(i['frate']) for i in sbill_items]),
-                'php_crate': sum([round_convert(i['crate']) for i in sbill_items]),
-            }
+                            "monthly_psof_no": doc.monthly_psof,
+                            "psof_no": child.get('psof'),
+                            'contract': child.get('contract'),
 
-            for p in sbill_items:
-                allocations = {
-                    "msf": round_convert(p.sfee),
-                    "decoder_rate": round_convert(p.drate),
-                    "card_rate": round_convert(p.crate),
-                    "promo_rate": round_convert(p.prate),
-                    "freight_rate": round_convert(p.frate),
-                    "decoder_diff": get_difference(round_convert(p.drate)),
-                    "card_diff": get_difference(round_convert(p.crate)),
-                    "promo_diff": get_difference(round_convert(p.prate)),
-                    "freight_diff": get_difference(round_convert(p.frate)),
-                }
-                allocations["total"] = round2(sum((flt(allocations["decoder_rate"]), flt(allocations["promo_rate"]),
-                                                   flt(allocations["card_rate"]), flt(allocations["freight_rate"]))))
-                allocations["vat_inc"] = round2(allocations["msf"] - allocations["total"])
-                allocations["vat_ex"] = round2(vat_(allocations["vat_inc"]))
-                allocations["vat"] = round2(allocations["vat_ex"] * 0.12)
-                allocations["vat_ex"] = round2(allocations["vat_inc"] - allocations["vat"])
-                allocations["comp_total"] = round2(sum([allocations["vat_ex"], allocations["vat"],
-                                                        allocations["total"]]))
+                            'decoder_rate_vat': child.get('decoder_rate_vat'),
+                            'card_rate_vat': child.get('card_rate_vat'),
+                            'promo_rate_vat': child.get('promo_rate_vat'),
+                            'freight_rate_vat': child.get('freight_rate_vat'),
 
-                # allocations["values1"] =allocations["vat_ex"] + vat_(allocations["total"]) + allocations["vat"] + get_difference(allocations["total"])
-                allocations["values1"] = sum([
-                    round2(check_last_digit(round(vat_(allocations["decoder_rate"]), 3))),
-                    round2(check_last_digit(round(vat_(allocations["card_rate"]), 3))),
-                    round2(check_last_digit(round(vat_(allocations["promo_rate"]), 3))),
-                    round2(check_last_digit(round(vat_(allocations["freight_rate"]), 3))),
-                    allocations["vat_ex"],
-                    allocations["vat"],
-                    get_difference(allocations["total"])
-                ])
+                            'decoder_rate': child.get('decoder_rate'),
+                            'card_rate': child.get('card_rate'),
+                            'promo_rate': child.get('promo_rate'),
+                            'freight_rate': child.get('freight_rate'),
 
-                allocations["values2"] = (allocations["values1"])
+                            'decoder_diff': child.get('decoder_diff'),
+                            'card_diff': child.get('card_diff'),
+                            'promo_diff': child.get('promo_diff'),
+                            'freight_diff': child.get('freight_diff'),
 
-                # allocations["comp_diff"] = allocations["msf"] - allocations["comp_total"]
-                # Revised 05292023 1 of 1
-                allocations["comp_diff"] = allocations["msf"] - allocations["values1"]
+                            'total_alloc_vat': child.get('total_alloc_vat'),
+                            'total_alloc': child.get('total_alloc'),
+                            'total_diff': child.get('total_diff'),
+                            'amount_vat': child.get('amount_vat'),
+                            # 'computed_diff': computed_diff,
 
-                allocations["comp_vat_ex"] = allocations["vat_ex"] + allocations["comp_diff"]
-
-                bill_totals = {'created_from': self.monthly_psof, 'customer': doc.customer,
-                               'subscription_period': doc.subscription_period, 'bill_date': doc.bill_date,
-                               "subscription_program": p.program, "subs_fee": p.sfee,
-                               "subscription_fee": allocations['msf'], "subscription_rate_inc": allocations["vat_inc"],
-                               "subscription_rate_ex": allocations["vat_ex"],
-                               "vat": allocations["vat"],
-                               "decoder_rate": vat_(allocations["decoder_rate"]),
-                               "card_rate": vat_(allocations["card_rate"]),
-                               "promo_rate": vat_(allocations["promo_rate"]),
-                               "freight_rate": vat_(allocations["freight_rate"]), "monthly_psof_no": doc.monthly_psof,
-                               "psof_no": p.psof,
-                               'total_alloc': vat_(allocations["total"]),
-                               'total_alloc_vat': allocations["total"], "decoder_rate_vat": allocations["decoder_rate"],
-                               "card_rate_vat": allocations["card_rate"], "promo_rate_vat": allocations["promo_rate"],
-                               "freight_rate_vat": allocations["freight_rate"], 'card_diff': allocations["card_diff"],
-                               'decoder_diff': allocations["decoder_diff"], 'freight_diff': allocations["freight_diff"],
-                               'promo_diff': allocations["promo_diff"],
-                               'total_diff': get_difference(allocations["total"]),
-                               'computed_total': allocations["comp_total"],
-                               'computed_diff': allocations["comp_diff"],
-                               'computed_vat_ex': allocations["comp_vat_ex"],
-                               "billing_currency": "PHP",
-                               "rounding_diff": [],
-                               'tax_category': bill.get('tx'),
-                               'variance': allocations["values2"]
-                               }
-
-                for i in ["decoder", "card", "promo", "freight"]:
-                    bill_totals["rounding_diff"].append(
-                        flt((bill_totals.get(f"{i}_rate_vat") - (bill_totals.get(f"{i}_rate_vat") / 1.12)),
-                            2) - bill_totals.get(f"{i}_diff"))
-
-                bill_totals["rounding_diff"] = flt(sum(bill_totals["rounding_diff"]), 2)
-                doc.append('items', bill_totals)
-
-                totals["t_msf"] += allocations["comp_total"]
-                totals["t_diff"] += allocations["comp_diff"]
-                totals["t_vat_ex"] += allocations["comp_vat_ex"]
-                totals["t_vat"] += allocations["vat"]
+                        }
+                )
 
             doc.flags.ignore_mandatory = True
             doc.insert()
-
-            totals["usd_allocation"] = sum([totals['decoder'], totals['promo'], totals['freight'], totals['card']])
-            totals["allocation"] = sum(
-                [totals['php_drate'], totals['php_prate'], totals['php_frate'], totals['php_crate']])
-            totals["vat"] = totals["t_vat"]
-            totals["vat_inc"] = totals["php_msf"] - totals["allocation"]
-            totals["vat_ex"] = totals["vat_inc"] - totals["vat"]
-            totals["comp_total"] = round2(sum((totals["vat_ex"], totals["vat"], totals["allocation"])))
-            totals["comp_diff"] = totals["php_msf"] - totals["comp_total"]
-            totals["comp_vat_ex"] = totals["vat_ex"] + totals["comp_diff"]
-
-            _totals_usd = reduce(add, (map(Counter, [
-                {"drate": i.get("drate"), "prate": i.get("prate"), "frate": i.get("frate"),
-                 "crate": i.get("crate")} for i in sbill_items])))
-
             self.append('billings', {
-                'tax_category': bill.get('tx'),
-                "billing_currency": "PHP",
-                'customer_name': customer_.customer_name,
-                'subscription_period': period.name,
-                'billing_date': period.end_date,
-                'currency': 'USD',
-                'exchange_rate': self.exchange_rate,
-                "account_manager": doc.account_manager or "",
-                "assistant": doc.assistant,
-                "customer": doc.customer,
-                "bill_no": doc.name,
-                # "date": self.posting_date,
-                "date": doc.bill_date,
-                'total_msf': totals['msf'],
-                'total_msf_vat_inc': totals['msf'] - totals["usd_allocation"],
-                'total_msf_vat_ex': vat_(totals['msf'] - totals["usd_allocation"]),
-                'total_vat': vat_(totals['msf'] - totals["usd_allocation"]) * 0.12,
-                'total_decoder_rate': totals['decoder'],
-                'total_promo_rate': totals['promo'],
-                'total_freight_rate': totals['freight'],
-                'total_card_rate': totals['card'],
-                'usd_msf': totals["php_msf"],
-                'usd_msf_lv_inc': totals["vat_inc"],
-                'usd_msf_lv_ex': totals["vat_ex"],
-                'usd_vat': totals["vat"],
-                'usd_decoder': totals["php_drate"],
-                'usd_promo': totals["php_prate"],
-                'usd_freight': totals["php_frate"],
-                'usd_card': totals["php_crate"],
-                'usd_decoder_ex': vat_(totals["decoder"]),
-                'usd_promo_ex': vat_(totals["promo"]),
-                'usd_freight_ex': vat_(totals["freight"]),
-                'usd_card_ex': vat_(totals["card"]),
-                'decoder_vat': get_difference(totals["php_drate"]),
-                'promo_vat': get_difference(totals["php_prate"]),
-                'freight_vat': get_difference(totals["php_frate"]),
-                'card_vat': get_difference(totals["php_crate"]),
-                'total_vat_inc': totals["allocation"],
-                "computed_tamount": totals["t_msf"],
-                "computed_tdiff": totals["t_diff"],
-                "computed_vat_ex": totals["t_vat_ex"] + totals["t_diff"],
-                "total_vat_ex": sum_(vat_(totals[i]) for i in ["decoder", "promo", "freight", "card"]),
-                "total_vat_diff": totals["allocation"] - round2(vat_(totals["allocation"])),
-                "t_drate_": _totals_usd.get("drate"),
-                "t_prate_": _totals_usd.get("prate"),
-                "t_frate_": _totals_usd.get("frate"),
-                "t_crate_": _totals_usd.get("crate"),
-                "t_rate_": sum(_totals_usd.values()),
-                "v_drate": get_difference(_totals_usd.get("drate")),
-                "v_prate": get_difference(_totals_usd.get("prate")),
-                "v_frate": get_difference(_totals_usd.get("frate")),
-                "v_crate": get_difference(_totals_usd.get("crate")),
-                "v_rate": get_difference(sum(_totals_usd.values())),
-                "x_drate": vat_(totals["php_drate"]),
-                "x_prate": vat_(totals["php_prate"]),
-                "x_frate": vat_(totals["php_frate"]),
-                "x_crate": vat_(totals["php_crate"]),
-                "x_rate": vat_(totals["allocation"]),
+                'customer': doc.customer,
+                'usd_msf': sum(i.get('subscription_fee') for i in childs),
+                'bill_no': doc.name,
+                'date': self.posting_date,
+                'exchange_rate': self.exchange_rate
             })
 
         self.create_sales_invoice()
+
         frappe.msgprint(
             msg='Bill successfully generated',
             title='Success',
             indicator='yellow',
             raise_exception=False
         )
+
         self.save()
 
         self.create_digital()
@@ -648,3 +580,222 @@ class MonthlyPSOFBilling(Document):
                     doc_soa.append("journal", adjustment)
 
             doc_soa.insert()
+
+    @frappe.whitelist()
+    def test(self):
+        # frappe.msgprint('test print')
+        return 'test'
+
+
+
+@frappe.whitelist()
+def generate_loading_bill(monthlypsof, docname):
+    doc = frappe.get_doc("Monthly PSOF Billing", docname)
+    # digitals = []
+    # soa_payment = []
+    # decimal = 2
+    sales_bills = frappe.db.sql(f"""
+        SELECT
+            d.customer_name as customer_name,
+            d.parent as parent,
+            d.psof as psof,
+            d.customer as customer,
+            d.assistant as assistant_manager,
+            d.account_manager as account_manager,
+            h.subscription_period as subscription_period,
+            d.tax_category as tax_category,
+            ROUND(b.exchange_rate, 2) as exchange_rate,
+            ROUND(date_from, 2) as date_from,
+            ROUND(date_to, 2) as date_to,
+            subscription_program,
+            contract,
+            ROUND(contract_start, 2) as contract_start,
+            ROUND(contract_end, 2) as contract_end,
+            ROUND(subscription_fee, 2) as subs_fee,
+
+
+
+
+
+            ROUND(subscription_fee * {doc.exchange_rate}, 2) as subscription_fee,
+            ROUND(subscription_fee * {doc.exchange_rate}, 2) - ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {doc.exchange_rate}, 2) as subscription_rate_inc,
+            ROUND((ROUND(subscription_fee * {doc.exchange_rate}, 2) - ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {doc.exchange_rate}, 2)) / 1.12, 2) as subscription_rate_ex1,
+            ROUND(subscription_rate * {doc.exchange_rate}, 2) as subscription_rate_ex,
+            ROUND(subscription_fee * {doc.exchange_rate}, 2) - ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {doc.exchange_rate}, 2) - ROUND((ROUND(subscription_fee * {doc.exchange_rate}, 2) - ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {doc.exchange_rate}, 2)) / 1.12, 2) as vat1,
+            ROUND(vat * {doc.exchange_rate}, 2) as vat,
+            ROUND(decoder_rate * {doc.exchange_rate}, 2) as decoder_rate_vat,
+            ROUND(card_rate * {doc.exchange_rate}, 2) as card_rate_vat,
+            ROUND(promo_rate * {doc.exchange_rate}, 2) as promo_rate_vat,
+            ROUND(freight_rate * {doc.exchange_rate}, 2) as freight_rate_vat,
+            ROUND(decoder_rate * {doc.exchange_rate} / 1.12, 2) as decoder_rate,
+            ROUND(card_rate * {doc.exchange_rate} / 1.12, 2) as card_rate,
+            ROUND(promo_rate * {doc.exchange_rate} / 1.12, 2) as promo_rate,
+            ROUND(freight_rate * {doc.exchange_rate} / 1.12, 2) as freight_rate,
+            ROUND(decoder_rate * {doc.exchange_rate}, 2) - ROUND(decoder_rate * {doc.exchange_rate} / 1.12, 2) as decoder_diff,
+            ROUND(card_rate * {doc.exchange_rate}, 2) - ROUND(card_rate * {doc.exchange_rate} / 1.12, 2) as card_diff,
+            ROUND(promo_rate * {doc.exchange_rate}, 2) - ROUND(promo_rate * {doc.exchange_rate} / 1.12, 2) as promo_diff,
+            ROUND(freight_rate * {doc.exchange_rate}, 2) - ROUND(freight_rate * {doc.exchange_rate} / 1.12, 2) as freight_diff,
+            ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {doc.exchange_rate}, 2) as total_alloc_vat,
+            ROUND(((freight_rate + card_rate + decoder_rate + promo_rate) * {doc.exchange_rate}) / 1.12, 2) as total_alloc,
+            ROUND((freight_rate + card_rate + decoder_rate + promo_rate) * {doc.exchange_rate}, 2) - ROUND(((freight_rate + card_rate + decoder_rate + promo_rate) * {doc.exchange_rate}) / 1.12, 2) as total_diff,
+            'self.name' as created_from,
+
+
+
+            round(((card_rate + freight_rate + promo_rate + decoder_rate) * {doc.exchange_rate} / 1.12) * .12, 2) + round(((subscription_fee  - (card_rate + freight_rate + promo_rate + decoder_rate)) * {doc.exchange_rate} / 1.12) * .12, 2) as amount_vat,
+            round((subscription_fee  - (card_rate + freight_rate + promo_rate + decoder_rate)) * {doc.exchange_rate} / 1.12, 2) as amount
+
+
+
+
+        FROM
+            `tabMonthly PSOF` h,
+            `tabMonthly PSOF Program Bill` d,
+            `tabSubscription Period` p,
+            `tabMonthly PSOF Billing` b
+        WHERE
+            h.name = d.parent
+            AND
+            h.name = '{monthlypsof}'
+            AND
+            h.subscription_period = p.name
+            and h.name = b.monthly_psof
+        order by customer
+
+            ;""", as_dict=1)
+
+    consolidated_data = {}
+    # Group data by customer
+    for entry in sales_bills:
+        customer_id = entry["customer"]
+        if customer_id not in consolidated_data:
+            consolidated_data[customer_id] = []
+        consolidated_data[customer_id].append(entry)
+
+    consolidated_result = []
+
+    for customer_id, entries in consolidated_data.items():
+        header = {
+            "customer": customer_id,
+            "customer_name": entries[0]["customer_name"],
+            "tax_category": entries[0]["tax_category"],
+            "contract": entries[0]["contract"],
+            "subscription_period": entries[0]["subscription_period"],
+            "account_manager": entries[0]["account_manager"],
+            "parent": entries[0]["parent"],
+            "psof": entries[0]["psof"],
+            "exchange_rate": entries[0]["exchange_rate"]
+        }
+        child_table = [{key: value for key, value in entry.items() if key not in header} for entry in entries]
+        consolidated_result.append({"header": header, "child_table": child_table})
+
+
+    return consolidated_result
+
+@frappe.whitelist()
+def g_bill(bill):
+    bill_data = json.loads(bill)
+    header = bill_data["header"]
+    childs = bill_data["child_table"]
+
+    # customer_ = frappe.get_doc("Customer", header['customer'])
+    # doc = frappe.new_doc("Subscription Bill")
+    # doc.customer = header['customer']
+    # doc.customer_name = header['customer_name']
+    # # doc.bill_date = bill.date
+    # doc.bill_date = self.posting_date
+    # doc.subscription_period = header['subscription_period']
+    # doc.due_date = get_due_date(doc.bill_date, "Customer", doc.customer)
+    # doc.exchange_rate = header['exchange_rate']
+    # doc.account_manager = header['account_manager']
+    # doc.assistant = customer_.billing_assistant
+    # doc.monthly_psof = header['parent']
+    # doc.psof = header['psof']
+    # doc.total_in_php = sum(i.get('subscription_fee') for i in childs)
+    # doc.total_in_usd = sum(i.get('subs_fee') for i in childs)
+    #
+    # for child in childs:
+    #     # newamount = (child.get("subscription_fee") - (child.get("decoder_rate_vat") + child.get("freight_rate_vat") + child.get("promo_rate_vat") + child.get("card_rate_vat"))) / 1.12
+    #     # newvat = ((((child.get("subscription_fee")) - ((child.get("decoder_rate_vat")) + (child.get("card_rate_vat")) + (child.get("promo_rate_vat")) + (child.get("freight_rate_vat")))) / 1.12) * .12) + (child.get("decoder_diff")) + (child.get("card_diff")) + (child.get("promo_diff")) + (child.get("freight_diff"))
+    #     # computed_diff = flt((child.get("subscription_fee") - (newamount + child.get("decoder_rate") + child.get("freight_rate") + child.get("promo_rate") + child.get("card_rate") + newvat)))
+    #     doc.append('items',
+    #                {
+    #                    "created_from": self.monthly_psof,
+    #                    'customer': doc.customer,
+    #                    'subscription_period': doc.subscription_period,
+    #                    'bill_date': doc.bill_date,
+    #                    "subscription_program": child.get('subscription_program'),
+    #                    "subs_fee": child.get('subs_fee'),
+    #                    "subscription_fee": child.get('subscription_fee'),
+    #                    "subscription_rate_inc": child.get('subscription_rate_inc'),
+    #                    "subscription_rate_ex": child.get('subscription_rate_ex'),
+    #                    'vat': child.get('vat'),
+    #                    # 'exchange_rate': self.exchage_rate,
+    #                    'exchange_rate': child.get('exchange_rate'),
+    #
+    #                    "monthly_psof_no": doc.monthly_psof,
+    #                    "psof_no": header['psof'],
+    #                    'contract': child.get('contract'),
+    #
+    #                    'decoder_rate_vat': child.get('decoder_rate_vat'),
+    #                    'card_rate_vat': child.get('card_rate_vat'),
+    #                    'promo_rate_vat': child.get('promo_rate_vat'),
+    #                    'freight_rate_vat': child.get('freight_rate_vat'),
+    #
+    #                    'decoder_rate': child.get('decoder_rate'),
+    #                    'card_rate': child.get('card_rate'),
+    #                    'promo_rate': child.get('promo_rate'),
+    #                    'freight_rate': child.get('freight_rate'),
+    #
+    #                    'decoder_diff': child.get('decoder_diff'),
+    #                    'card_diff': child.get('card_diff'),
+    #                    'promo_diff': child.get('promo_diff'),
+    #                    'freight_diff': child.get('freight_diff'),
+    #
+    #                    'total_alloc_vat': child.get('total_alloc_vat'),
+    #                    'total_alloc': child.get('total_alloc'),
+    #                    'total_diff': child.get('total_diff'),
+    #                    'amount_vat': child.get('amount_vat'),
+    #                    # 'computed_diff': computed_diff,
+    #
+    #                }
+    #                )
+    #
+    #     doc.flags.ignore_mandatory = True
+    #     doc.insert()
+    #     self.append('billings', {
+    #         'customer': doc.customer,
+    #         'usd_msf': sum(i.get('subscription_fee') for i in childs),
+    #         'bill_no': doc.name,
+    #         'date': self.posting_date,
+    #         'exchange_rate': self.exchange_rate
+    #     })
+    #
+    # self.create_sales_invoice()
+    #
+    # frappe.msgprint(
+    #     msg='Bill successfully generated',
+    #     title='Success',
+    #     indicator='yellow',
+    #     raise_exception=False
+    # )
+    #
+    # self.save()
+    #
+    # self.create_digital()
+    # self.db_set("generated", 1)
+    # frappe.db.set_value("Monthly PSOF", self.get("monthly_psof"), "billing_generated", 1)
+    
+    return header
+
+# for print out
+@frappe.whitelist()
+def get_sub_bill(bill_no):
+    sub_bill = frappe.db.sql(f"""
+    	select *
+        from `tabSubscription Bill Item`
+        where parent = '{bill_no}'
+    	""", as_dict=1)
+
+    return sub_bill
+

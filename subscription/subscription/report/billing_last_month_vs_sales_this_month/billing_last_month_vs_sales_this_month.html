@@ -53,17 +53,17 @@
         ${list.map(e => `
         <tr>
             <td colspan="2" style="text-indent: 20px">${e.parent_customer}</td>
-            <td class="text-left">${e.m1_psof || '' }</td>
             <td class="text-left">${e.m2_psof || '' }</td>
-            <td class="text-center bill-row">${format_currency(e.m1_fee, 2) == 0 ? '' : format_currency(e.m1_fee, 2)}</td>
-            <td class="text-center sales-row">${format_currency(e.m2_fee, 2) == 0 ? '' : format_currency(e.m2_fee, 2)}</td>
+            <td class="text-left">${e.m1_psof || '' }</td>
+            <td class="text-center bill-row">${format_currency(e.m2_fee, 2) == 0 ? '' : format_currency(e.m2_fee, 2)}</td>
+            <td class="text-center sales-row">${format_currency(e.m1_fee, 2) == 0 ? '' : format_currency(e.m1_fee, 2)}</td>
             <td class="text-center var-row">${format_currency(e.variance, 2) == 0 ? '' : format_currency(e.variance, 2)}</td>
             <td class="btm-bordered"></td>
         </tr>`).join("")}
         <tr>
             <td colspan="4" class="text-right bold">TOTAL</td>
-            <td class="top-bordered text-center bill-row">${format_currency(frappe.utils.sum(list.map((e) => e.m1_fee)), 2) == 0 ? '' : format_currency(frappe.utils.sum(list.map((e) => e.m1_fee)), 2)}</td>
-            <td class="top-bordered text-center sales-row">${format_currency(frappe.utils.sum(list.map((e) => e.m2_fee)), 2) == 0 ? '' : format_currency(frappe.utils.sum(list.map((e) => e.m2_fee)), 2)}</td>
+            <td class="top-bordered text-center bill-row">${format_currency(frappe.utils.sum(list.map((e) => e.m2_fee)), 2) == 0 ? '' : format_currency(frappe.utils.sum(list.map((e) => e.m2_fee)), 2)}</td>
+            <td class="top-bordered text-center sales-row">${format_currency(frappe.utils.sum(list.map((e) => e.m1_fee)), 2) == 0 ? '' : format_currency(frappe.utils.sum(list.map((e) => e.m1_fee)), 2)}</td>
             <td class="top-bordered text-center var-row">${format_currency(frappe.utils.sum(list.map((e) => e.variance)), 2) == 0 ? '' : format_currency(frappe.utils.sum(list.map((e) => e.variance)), 2)}</td>
         </tr>
         `).join("")
@@ -73,8 +73,8 @@
         <tr>
             <td colspan="4" class="text-right bold">GRAND TOTAL</td>
         ${list.map((x) => `
-                <td class="top-bordered text-center bill-row">${format_currency(x.m1_fee, 2) == 0 ? '' : format_currency(x.m1_fee, 2)}</td>
-                <td class="top-bordered text-center sales-row">${format_currency(x.m2_fee, 2) == 0 ? '' : format_currency(x.m2_fee, 2)}</td>
+                <td class="top-bordered text-center bill-row">${format_currency(x.m2_fee, 2) == 0 ? '' : format_currency(x.m2_fee, 2)}</td>
+                <td class="top-bordered text-center sales-row">${format_currency(x.m1_fee, 2) == 0 ? '' : format_currency(x.m1_fee, 2)}</td>
                 <td class="top-bordered text-center var-row">${format_currency(x.variance, 2) == 0 ? '' : format_currency(x.variance, 2)}</td>
             `).join("")}
         </tr>`)

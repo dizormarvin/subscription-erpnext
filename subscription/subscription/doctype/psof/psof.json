@@ -27,6 +27,7 @@
   "cable_system_address",
   "contact_number",
   "column_break_21",
+  "areas_of_operation",
   "area_served",
   "area_of_operation",
   "contract_details_section",
@@ -190,10 +191,10 @@
    "label": "Cable System Details"
   },
   {
+   "fetch_from": "address_title.address_line1",
    "fieldname": "cable_system_address",
    "fieldtype": "Text",
-   "label": "Cable System Address",
-   "read_only": 1
+   "label": "Cable System Address"
   },
   {
    "fieldname": "contact_number",
@@ -203,6 +204,7 @@
   {
    "fieldname": "area_served",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Area Served",
    "options": "Area Served",
    "width": "0"
@@ -230,6 +232,7 @@
    "read_only": 1
   },
   {
+   "fetch_from": "customer_name.customer_primary_address",
    "fieldname": "address_title",
    "fieldtype": "Link",
    "label": "Customer Address",
@@ -308,14 +311,14 @@
   {
    "fieldname": "dummy_psof",
    "fieldtype": "Link",
-   "label": "Dummy PSOF",
+   "label": "Amend/Dummy PSOF",
    "options": "PSOF",
    "read_only": 1
   },
   {
    "fieldname": "dummy_contract",
    "fieldtype": "Link",
-   "label": "Dummy Contract",
+   "label": "Amend/Dummy Contract",
    "options": "Subscription Contract",
    "read_only": 1
   },
@@ -368,18 +371,28 @@
    "fetch_if_empty": 1,
    "fieldname": "area_of_operation",
    "fieldtype": "Long Text",
+   "hidden": 1,
    "label": "Area of Operation"
   },
   {
    "fieldname": "user",
    "fieldtype": "Link",
+   "hidden": 1,
    "in_standard_filter": 1,
-   "label": "user",
-   "options": "User"
+   "label": "User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "default": "areas_of_operation",
+   "fieldname": "areas_of_operation",
+   "fieldtype": "Table",
+   "label": "Areas of Operation",
+   "options": "Areas of Operation"
   }
  ],
  "links": [],
- "modified": "2024-02-20 10:54:21.166311",
+ "modified": "2024-11-05 13:57:32.232315",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF",

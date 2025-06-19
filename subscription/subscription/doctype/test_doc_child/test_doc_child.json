@@ -1,60 +1,50 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2023-06-07 15:42:34.611777",
+ "creation": "2024-09-18 15:47:38.213546",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "field1",
   "field2",
-  "test_doc_child",
-  "test_doc_child_child"
+  "test_doc_child_child",
+  "field3"
  ],
  "fields": [
   {
    "fieldname": "field1",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "field1"
   },
   {
    "fieldname": "field2",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "field2"
   },
   {
-   "fieldname": "test_doc_child",
+   "fieldname": "test_doc_child_child",
    "fieldtype": "Table",
-   "label": "Test Doc child",
-   "options": "Test Doc child"
+   "label": "Test Doc child child",
+   "options": "Test Doc child child"
   },
   {
-   "fieldname": "test_doc_child_child",
+   "fieldname": "field3",
    "fieldtype": "Data",
-   "label": "Test Doc child child"
+   "label": "field3"
   }
  ],
  "index_web_pages_for_search": 1,
+ "istable": 1,
  "links": [],
- "modified": "2024-09-18 15:57:11.364116",
+ "modified": "2024-09-18 15:49:52.541657",
  "modified_by": "Administrator",
  "module": "Subscription",
- "name": "Test Doc",
+ "name": "Test Doc child",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
+ "permissions": [],
  "sort_field": "modified",
  "sort_order": "DESC"
 }

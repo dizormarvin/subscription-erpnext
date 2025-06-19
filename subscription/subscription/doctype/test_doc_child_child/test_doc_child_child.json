@@ -1,0 +1,36 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-09-18 15:48:15.255700",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "field1",
+  "field2"
+ ],
+ "fields": [
+  {
+   "fieldname": "field1",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "field1"
+  },
+  {
+   "fieldname": "field2",
+   "fieldtype": "Data",
+   "label": "field2"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-09-18 15:49:05.900201",
+ "modified_by": "Administrator",
+ "module": "Subscription",
+ "name": "Test Doc child child",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

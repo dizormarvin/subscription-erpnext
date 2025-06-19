@@ -13,6 +13,13 @@ from datetime import datetime
 
 
 class ProgramActivation(Document):
+    def on_cancel(self):
+        frappe.db.sql(f"""
+            update `tabProgram Activation Request` 
+            set activation_ref = null, workflow_state = 'Sent to Technical', docstatus = 1, status = 'Sent to Technical' 
+            where name = '{self.activation_req}'
+            """)
+
     @frappe.whitelist()
     def make_material_request(self, program_items):
         material_request = frappe.new_doc("Material Request")
@@ -65,12 +72,15 @@ class ProgramActivation(Document):
             contact = frappe.db.sql(
                 f"SELECT phone, first_name from `tabContact` where name like '%{self.customer_name}%'", as_dict=1)
 
-            if address[0].get("address_line1"):
-                self.db_set("address_line1", address[0].get("address_line1"), commit=True)
+            if address and contact:
+                if address[0].get("address_line1"):
+                    self.db_set("address_line1", address[0].get("address_line1"), commit=True)
 
-            if contact[0].get("phone") or contact[0].get("first_name"):
-                self.db_set("customer_contact", contact[0].get("phone"), commit=True)
-                self.db_set("contact_person", contact[0].get("first_name"), commit=True)
+                if contact[0].get("phone") or contact[0].get("first_name"):
+                    self.db_set("customer_contact", contact[0].get("phone"), commit=True)
+                    self.db_set("contact_person", contact[0].get("first_name"), commit=True)
+            else:
+                frappe.msgprint('Note: Cable System Operator Does not have Address or Contact in Master File please update')
 
     @frappe.whitelist()
     def before_submit(self):
@@ -128,7 +138,16 @@ class ProgramActivation(Document):
                 "cam": psof_program.get("cam") if psof_program.get("cam") else None,
                 "cam_serialno": psof_program.get("cam_serialno") if psof_program.get("cam_serialno") else None,
 
-                "unit_address": unit_addr.get('unit_address') if unit_addr.get('unit_address') else None
+                "ird_serialno1": psof_program.get("ird_model1") if psof_program.get("ird_model1") else None,
+                "smart_card_serialno1": psof_program.get("smart_card1") if psof_program.get("smart_card1") else None,
+                "cam_serialno1": psof_program.get("cam1") if psof_program.get("cam1") else None,
+
+                "ird_model1": psof_program.get("ird_model1_link") if psof_program.get("ird_model1_link") else None,
+                "smart_card1": psof_program.get("smart_card1_link") if psof_program.get("smart_card1_link") else None,
+                "cam1": psof_program.get("cam1_link") if psof_program.get("cam1_link") else None,
+
+                "unit_address": unit_addr.get('unit_address') if unit_addr.get('unit_address') else None,
+                "co_unit_address": psof_program.get("co_unit_address") if psof_program.get("co_unit_address") else None,
             }
         else:
             data = {
@@ -150,7 +169,17 @@ class ProgramActivation(Document):
                 "cam": psof_program.get("cam") if psof_program.get("cam") else None,
                 "cam_serialno": psof_program.get("cam_serialno") if psof_program.get("cam_serialno") else None,
 
-                "unit_address": unit_addr.get('unit_address') if unit_addr.get('unit_address') else None
+                "ird_serialno1": psof_program.get("ird_model1") if psof_program.get("ird_model1") else None,
+                "smart_card_serialno1": psof_program.get("smart_card1") if psof_program.get("smart_card1") else None,
+                "cam_serialno1": psof_program.get("cam1") if psof_program.get("cam1") else None,
+
+                "ird_model1": psof_program.get("ird_model1_link") if psof_program.get("ird_model1_link") else None,
+                "smart_card1": psof_program.get("smart_card1_link") if psof_program.get("smart_card1_link") else None,
+                "cam1": psof_program.get("cam1_link") if psof_program.get("cam1_link") else None,
+
+                "unit_address": unit_addr.get('unit_address') if unit_addr.get('unit_address') else None,
+
+                "co_unit_address": psof_program.get("co_unit_address") if psof_program.get("co_unit_address") else None,
             }
 
         self.append("included_programs", data)

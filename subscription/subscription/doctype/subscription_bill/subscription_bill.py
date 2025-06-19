@@ -7,6 +7,7 @@ import frappe
 from frappe.model.document import Document
 from frappe import _
 from frappe.utils import now, today
+from frappe.utils.background_jobs import enqueue
 
 
 class SubscriptionBill(Document):
@@ -20,8 +21,8 @@ class SubscriptionBill(Document):
         period = frappe.get_doc("Subscription Period", self.subscription_period)
         bill = frappe.db.sql("""SELECT * FROM `tabSubscription Bill`
             WHERE name = %s""",
-            (self.name), as_dict=1)
-        
+                             (self.name), as_dict=1)
+
         for i in bill:
             doc = frappe.new_doc("Journal Entry")
             doc.entry_type = "Journal Entry"
@@ -32,7 +33,7 @@ class SubscriptionBill(Document):
             doc.reference_no = self.name
             doc.reference_date = self.bill_date
             doc.user_remark = "Billing Entry For " + self.name
-            
+
             item = frappe.db.sql("""SELECT 
                 i.*,
                 p.msf_ar_account,
@@ -49,8 +50,8 @@ class SubscriptionBill(Document):
                 FROM `tabSubscription Bill Item` i, `tabSubscription Program` p
                 WHERE i.parent = %s
                 AND i.subscription_program = p.name""",
-                (self.name), as_dict=1)
-            
+                                 (self.name), as_dict=1)
+
             for d in item:
                 if d.subscription_rate > 0:
                     doc.append('accounts', {
@@ -133,13 +134,23 @@ class SubscriptionBill(Document):
                         "exchange_rate": self.exchange_rate,
                         "credit_in_account_currency": d.freight_rate
                     })
-                    
+
             doc.insert()
             self.journal_reference = doc.name
 
     def after_insert(self):
-        for item in self.get("items"):
-            item.create_invoice()
+        self.created_invoices()
+        #pass
+        # for item in self.get("items"):
+        #     item.create_invoice()
+
+
+        # frappe.enqueue(
+        #     self.created_invoices,
+        #     queue='long',
+        #     timeout=200,
+        #     is_async=True
+        # )
 
     def on_submit(self):
         self.submit_bill_item_invoice()
@@ -148,3 +159,19 @@ class SubscriptionBill(Document):
         invoices = frappe.db.get_list("Sales Invoice", {"subscription_bill": self.name}, pluck="name")
         for invoice in invoices:
             frappe.get_doc("Sales Invoice", invoice).submit()
+
+    def created_invoices(self):
+        
+        for item in self.get("items"):
+            item.create_invoice()
+
+# @frappe.whitelist()
+# def create_si(doc):
+#     frappe.msgprint('test')
+#     # for item in doc.get("items"):
+#     #     item.create_invoice()
+#     for index, item in enumerate(doc.get("items")):
+#
+#         item.create_invoice()
+#         if index == 0:
+#             break

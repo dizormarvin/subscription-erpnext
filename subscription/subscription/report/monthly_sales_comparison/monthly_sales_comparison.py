@@ -11,19 +11,83 @@ import pandas as pd
 def execute(filters=None):
 	if not (filters.get('mpsof_1') and filters.get('mpsof_2')):
 		return [], []
-	
+	sql = f"""
+		select
+			customer_name,
+			sum(m1_fee) as m1_fee,
+			sum(m2_fee) as m2_fee,
+			sum(variance) as variance
+			
+			from
+				(
+			SELECT
+				b.customer_name,
+				coalesce(decem.subscription_fee,0) AS m1_fee,
+				coalesce(jan.subscription_fee,0) AS m2_fee,
+				coalesce(jan.subscription_fee, 0) - coalesce(decem.subscription_fee,0) as variance
+			
+			FROM
+				`tabMonthly PSOF Program Bill` b
+			
+			LEFT JOIN
+				`tabMonthly PSOF Program Bill` decem ON b.subscription_program = decem.subscription_program AND decem.parent = '{filters.get('mpsof_1')}' AND b.customer_name = decem.customer_name
+			
+			LEFT JOIN
+			`tabMonthly PSOF Program Bill` jan ON b.subscription_program = jan.subscription_program AND jan.parent = '{filters.get('mpsof_2')}' AND b.customer_name = jan.customer_name
+			WHERE
+				b.parent IN ('{filters.get('mpsof_1')}', '{filters.get('mpsof_2')}')
+				and (coalesce(jan.subscription_fee, 0) - coalesce(decem.subscription_fee,0)) <> 0
+				group by b.customer_name, b.subscription_program
+				order by b.customer_name
+			)consolidated
+		
+		group by customer_name
+		order by customer_name
+			
+	"""
+
+	# if filters.get('has_variance'):
+	# 	sql += ' where variance <> 0'
+
+	# sql += ' group by customer_name'
+
+	sql_data = frappe.db.sql(sql, as_dict=1)
+
 	columns = _get_columns(filters=filters)
 	data = _get_data(filters, columns)
 	pd_df = pd.DataFrame(data)
-	
+
+	if filters.get('has_variance'):
+		for d in data: # ADD TOTAL IF HAS VARIANCE REQUESTED BY ANNALYN PAYAC
+			for sd in sql_data:
+				if d.get('parent_customer') == sd.get('customer_name'):
+					d.update({'m1_fee': sd.get('m1_fee'), 'm2_fee': sd.get('m2_fee'), 'variance': sd.get('variance'), })
+
+					# sum(item['m1_fee'] for item in sql_data if d.get('parent_customer') == item.get('customer_name'))
+				# d.update({
+				# 	'm1_fee': sum(item['m1_fee'] for item in sql_data if d.get('parent_customer') == item.get('customer_name')),
+				# 	'm2_fee': sum(item['m2_fee'] for item in sql_data if d.get('parent_customer') == item.get('customer_name')),
+				# 	'variance': sum(item['variance'] for item in sql_data if d.get('parent_customer') == item.get('customer_name')),
+				# })
+
+	[d.update({'variance': flt(d.get('m1_fee') - d.get('m2_fee'))}) for d in data if d.get('indent') == 2]
+
+	for d in data[:]:  # REMOVE CHILD IF VARIANCE IS 0 may 27
+		if d.get('indent') == 2 and (d.get('variance') == 0 or d.get('variance') == 0.00) and filters.get('has_variance'):
+			data.remove(d)
+
+	for d in data[:]:  # REMOVE TOTAL IF VARIANCE IS 0 may 27
+		if d.get('indent') == 0 and (d.get('variance') == 0 or d.get('variance') == 0.00) and filters.get('has_variance'):
+			data.remove(d)
+
 	data.append({
 		'parent_customer': 'Total',
 		'm1_fee': pd_df['m1_fee'].sum() or 0,
 		'm2_fee': pd_df['m2_fee'].sum() or 0,
 		'variance': pd_df['variance'].sum() or 0
 	})
-	
-	[d.update({'variance': flt(d.get('m1_fee') - d.get('m2_fee'))}) for d in data if d.get('indent') == 2]
+
+	# [d.update({'variance': flt(d.get('m1_fee') - d.get('m2_fee'))}) for d in data if d.get('indent') == 2]
 	
 	return columns, data
 
@@ -91,19 +155,24 @@ def _get_data(filters=None, columns=None):
 		.where(mpsof.parent.isin([mp1, mp2]))
 	).run(as_dict=True)
 	
-	for parent in parent_program:
+	for parent in sorted(parent_program, key=lambda x: x['customer']):
+
 		p_data = {
 			'parent': 1,
 			'parent_customer': parent.customer,
 			'child_program': None,
 			'm1_psof': None,
 			'm2_psof': None,
+			# 'm1_fee': 0,
 			'm1_fee': mpsof_total(mp1, parent.get('customer')),
+			# 'm2_fee': 0,
 			'm2_fee': mpsof_total(mp2, parent.get('customer')),
 			'variance': 0,
 			'indent': 0,
 			'has_value': False,
 		}
+
+
 		p_data['variance'] = flt(p_data.get('m1_fee') - p_data.get('m2_fee'))
 		
 		c_data = []
@@ -141,7 +210,10 @@ def _get_data(filters=None, columns=None):
 		elif len(c_data[0]) and len(c_data[1]):
 			for i1 in c_data[0]:
 				for i2 in c_data[1]:
-					if i2.get("m2_psof") == i1.get("m1_psof") and i2.get("m2_program") == i1.get("m1_program"):
+
+					# original
+					# if i2.get("m2_psof") == i1.get("m1_psof") and i2.get("m2_program") == i1.get("m1_program"):
+					if i2.get("m2_program") == i1.get("m1_program"): #New March 25 2024
 						i1.update(i2)
 						c_data[1].remove(i2)
 						i1.update({
@@ -172,7 +244,9 @@ def _get_data(filters=None, columns=None):
 		result.append(p_data)
 		
 		for i in n_data:
-			if i.get("m2_psof") == i.get("m1_psof") and i.get("m2_program") == i.get("m1_program"):
+			# ORIGINAL
+			# if i.get("m2_psof") == i.get("m1_psof") and i.get("m2_program") == i.get("m1_program"):
+			if i.get("m2_program") == i.get("m1_program"): # NEW March 25 2024
 				i.update({
 					'variance': flt(i.get('m1_fee') or 0 - i.get('m2_fee') or 0) + 500,
 				})
@@ -189,7 +263,7 @@ def _get_data(filters=None, columns=None):
 			n_data = [res for res in n_data if flt(res['variance'])]
 			
 		result += n_data
-		
+
 	return result
 
 

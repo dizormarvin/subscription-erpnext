@@ -15,6 +15,8 @@
   "customer_contact",
   "column_break_2",
   "psof",
+  "billing_assistant",
+  "account_manager",
   "signature",
   "section_break_4",
   "included_programs",
@@ -110,11 +112,25 @@
    "fieldname": "contact_person",
    "fieldtype": "Data",
    "label": "Customer Contact Person"
+  },
+  {
+   "fetch_from": "customer_name.billing_assistant",
+   "fieldname": "billing_assistant",
+   "fieldtype": "Data",
+   "label": "Billing Assistant",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer_name.default_sales_partner",
+   "fieldname": "account_manager",
+   "fieldtype": "Data",
+   "label": "Account Manager",
+   "read_only": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2023-07-17 17:31:32.211819",
+ "modified": "2024-08-20 14:27:36.101669",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Program Activation",

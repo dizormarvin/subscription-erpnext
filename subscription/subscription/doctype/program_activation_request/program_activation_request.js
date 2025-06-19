@@ -7,6 +7,30 @@ frappe.ui.form.on('Program Activation Request', {
     	refresh: function(frm) {
 			console.clear()
 			show_dialog_box(frm)
+
+			frm.set_query("smart_card1_link", "programs", () => {
+				return {
+					filters: {
+						item_group: ["in", "VIEWING CARD"]
+					}
+				}
+			})
+
+			frm.set_query("ird_model1_link", "programs", () => {
+				return {
+					filters: {
+						item_group: ["in", "IRD w/o CARD & CAM"]
+					}
+				}
+			})
+
+			frm.set_query("cam1_link", "programs", () => {
+				return {
+					filters: {
+						item_group: ["in", "CAM"]
+					}
+				}
+			})
 	},
 
     onload: (frm) => {
@@ -94,8 +118,10 @@ function show_dialog_box(frm) {
 			checkMR = 0
 		}
 
+		var check_action = frm.doc.programs[0].action
+		console.log(check_action)
 		// show button
-		if (frm.doc.workflow_state == 'For Acct Manager Approval') {
+		if (['Draft Request', 'Sent to Technical', 'For Acct Manager Approval'].includes(frm.doc.workflow_state) && check_action == 'Activate') {
 			frm.add_custom_button('Create Material Request', () => {
 				if(frm.doc.__unsaved == 1) {
 					frappe.throw('Please save the document first')
@@ -236,17 +262,21 @@ function show_dialog_box(frm) {
 							"program_name": row.program,
 							"no_of_months": row.no_of_months
 						});
+						// program_items.push({
+						// 	"program_name": 'Test',
+						// 	"no_of_months": 1
+						// });
 					}
 				});
 				const hasZero = program_items.some(program => program.no_of_months === 0);
 				if(hasZero){
 					let allZero = program_items.map(obj => {return obj.program_name});
-					var msg = "<b>No of Months (Recovery)</b>" + " is required for program below: " + "<br>" + "<ul>"
+					var msg = "<b>No of Months (Recovery)</b>" + " is zero for program below,: " + "<br>" + "<ul>"
 					allZero.forEach((program) => {
 						msg += "<li>" + program + "</li>"
 					})
 					msg += "</ul>"
-					frappe.throw(msg)
+					frappe.msgprint(msg)
 				}
 				dialog.fields_dict["program_for_material_request"].df.data = program_items;
 				dialog.get_field("program_for_material_request").refresh();

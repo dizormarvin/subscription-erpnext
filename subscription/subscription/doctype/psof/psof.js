@@ -135,13 +135,17 @@ const reCompute = (frm) => {
 }
 const reComputeBillView = (frm, row) => {
     let total_allocation = computeAllocationTotal(row, true)
+    if(row.subscription_fee <= total_allocation){
+        frappe.msgprint("Subscription Fee must be higher than Total Allocation")
+        return
+    }
     const { tax_category } = frm.doc
     let less_vat = 0
     let diff_gt = 0
     let gt = 0
     if (tax_category === "Vat Inclusive") {
         less_vat = (row.subscription_fee - total_allocation) / 1.12
-        row.vat_amount = flt(total_allocation * 0.12, 2)
+        row.vat_amount = flt(less_vat * 0.12, 2)
     } else {
         less_vat = (row.subscription_fee - total_allocation)
         row.vat_amount = 0
@@ -151,11 +155,29 @@ const reComputeBillView = (frm, row) => {
     row.vat_promo = computeBillTax(tax_category, row.promo_rate)
     row.vat_freight = computeBillTax(tax_category, row.freight_rate)
     gt = less_vat + computeAllocationTotal(row, true) + row.vat_amount
-    diff_gt = row.subscription_fee - gt
-    row.subscription_rate = less_vat + diff_gt
+    diff_gt = gt - row.subscription_fee
+
+    //ORIGINAL
+    //row.subscription_rate = less_vat + diff_gt
+    row.subscription_rate = less_vat - diff_gt
+
+    // Marvin: Getting rate_per_sub for current generated/view bill
+    const current_rate_per_sub = frm.doc.programs.find(item => item.subscription_program === frm.doc.subscription_program)?.rate_per_sub;
+    console.log(current_rate_per_sub)
+    let new_rate_per_sub = Math.trunc(row.subscription_rate / current_rate_per_sub)
+    console.log('new rate per sub', new_rate_per_sub)
+    // Decimal Check
+    if (hasAllDecimalPlacesAsNine(row.subscription_rate / current_rate_per_sub)) {
+        row.no_of_subs = Math.trunc(row.subscription_rate / current_rate_per_sub) + 1;
+    } else {
+        row.no_of_subs = Math.trunc(row.subscription_rate / current_rate_per_sub);
+    }
+    // row.no_of_subs = new_rate_per_sub
+
     frm.refresh_fields('bill_view')
 }
 const computeBillTax = (taxtype, allocation_amount) => taxtype === "Vat Inclusive" ? flt(allocation_amount - flt(allocation_amount / 1.12)) : 0;
+
 const flatFeeToggler = (doc) => {
     const ns = frappe.meta.get_docfield("PSOF Program", "subs_display", doc.doc.name)
     const sf = frappe.meta.get_docfield("PSOF Program", "subscription_fee", doc.doc.name)
@@ -219,10 +241,12 @@ frappe.ui.form.on('PSOF', {
     //         console.log(r.message.customer_primary_address)
     //     })
     // },
+
     refresh: (frm) => {
         if (!frm.doc.__unsaved) {
             const cur_programs = frm.doc.programs.map((e) => e.subscription_program).filter((z) => z)
             if (cur_programs.length > 0 && cur_programs) {
+
                 // frm.set_query("subscription_program", "programs", () => {
                 //     return {
                 //         filters: {
@@ -230,6 +254,7 @@ frappe.ui.form.on('PSOF', {
                 //         }
                 //     }
                 // })
+
                 console.log(cur_programs)
             }
             flatFeeToggler(frm)
@@ -349,6 +374,13 @@ frappe.ui.form.on('PSOF', {
                 for (let program of programs) {
                     if (frm.doc.subscription_program === program.subscription_program) {
                         program.bill_generated = 1
+
+                        setTimeout(() => {
+                            frm.save()
+                        }, "2000")
+                        // console.log(program.doctype)
+                        // frappe.model.set_value(program.doctype, program.docname, "bill_generated", 1);
+
                         // frm.fields_dict['programs'].grid.get_field('subscription_program').read_only = 1;
                     }
                 }
@@ -362,7 +394,17 @@ frappe.ui.form.on('PSOF', {
         }
 
         cur_frm.clear_table("bill_view");
-        cur_frm.call('create_bill', function (r) { });
+
+        if (frappe.boot.sitename === 'test-v13.cableboss.net') {
+            // FOR TEST SITE TESTING OF SCRIPT
+            cur_frm.call('create_bill', function (r) { });
+        } else {
+            // ORGINAL
+            // cur_frm.call('create_bill', function (r) { });
+            cur_frm.call('create_bill', function (r) { });
+
+        }
+
         cur_frm.refresh_fields(frm);
     },
     view_bill: (frm) => {
@@ -413,6 +455,16 @@ frappe.ui.form.on("PSOF Program Bill View", {
             })
             frm.refresh_field("bill_view")
         }
+    },
+
+    bill_generated: (frm, cdt, cdn) => {
+        console.log('yes')
+        let row = locals[cdt][cdn]
+        // const sam = frappe.meta.get_docfield("PSOF Program Bill View", "bill_generated", row.name)
+        console.log(row.idx)
+        // console.log(sam)
+        // ns.read_only = 0;
+        // frm.fields_dict['programs'].grid.get_field('subscription_program').read_only = 1;
     }
 });
 

@@ -14,7 +14,12 @@
   "exchange_rate",
   "section_break_6",
   "billings",
-  "amended_from"
+  "amended_from",
+  "approving_officer_section",
+  "prepared_by",
+  "checked_by",
+  "noted_by",
+  "approved_by"
  ],
  "fields": [
   {
@@ -73,11 +78,40 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Generated"
+  },
+  {
+   "fieldname": "approving_officer_section",
+   "fieldtype": "Section Break",
+   "label": "Approving Officer"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "prepared_by",
+   "fieldtype": "Data",
+   "label": "Prepared by"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "noted_by",
+   "fieldtype": "Data",
+   "label": "Noted By"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "checked_by",
+   "fieldtype": "Data",
+   "label": "Checked by"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "approved_by",
+   "fieldtype": "Data",
+   "label": "Approved by"
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2023-07-25 17:15:07.754906",
+ "modified": "2025-01-20 18:05:23.178403",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Monthly PSOF Billing",

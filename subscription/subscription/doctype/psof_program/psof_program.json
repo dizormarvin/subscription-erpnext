@@ -10,6 +10,7 @@
   "program_status",
   "renewal",
   "include_in_bill_expired_until_renewed",
+  "revised",
   "bill_generated",
   "for_cb",
   "is_package",
@@ -598,9 +599,7 @@
   {
    "fieldname": "no_of_subs",
    "fieldtype": "Int",
-   "hidden": 1,
-   "label": "Subs",
-   "read_only": 1
+   "label": "Subs"
   },
   {
    "fieldname": "subs_display",
@@ -623,11 +622,17 @@
    "fieldtype": "Check",
    "label": "Packaged Program",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "revised",
+   "fieldtype": "Check",
+   "label": "Revised"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2024-02-22 10:20:53.708130",
+ "modified": "2024-10-25 10:25:38.949712",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "PSOF Program",

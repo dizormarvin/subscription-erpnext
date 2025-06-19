@@ -86,6 +86,7 @@ class MonthlyPSOF(Document):
                 FROM 
                     `tabPSOF Program Bill` pb
                 left join `tabPSOF` p on p.name = pb.psof
+                left join `tabPSOF Program` psofprogram on psofprogram.parent = p.name
                 left join `tabSubscription Contract` sc on p.subscription_contract = sc.name
                 WHERE 
                     pb.date_from 
@@ -96,6 +97,9 @@ class MonthlyPSOF(Document):
                     pb.free_view = 0
                     AND
                     sc.docstatus = 1
+                    AND pb.subscription_program is not null
+                    AND pb.subscription_program <> ''
+              group by name
                         """, as_dict=1)
 
         for i in program_bills:

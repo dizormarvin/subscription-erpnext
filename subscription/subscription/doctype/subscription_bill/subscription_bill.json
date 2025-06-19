@@ -22,6 +22,10 @@
   "tax_category",
   "section_break_8",
   "items",
+  "total_section",
+  "total_in_php",
+  "column_break_18",
+  "total_in_usd",
   "amended_from"
  ],
  "fields": [
@@ -129,11 +133,30 @@
    "fieldname": "posting_date",
    "fieldtype": "Date",
    "label": "Posting Date"
+  },
+  {
+   "fieldname": "total_in_php",
+   "fieldtype": "Currency",
+   "label": "Total in PHP"
+  },
+  {
+   "fieldname": "total_in_usd",
+   "fieldtype": "Currency",
+   "label": "Total in USD"
+  },
+  {
+   "fieldname": "column_break_18",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_section",
+   "fieldtype": "Section Break",
+   "label": "Total"
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2023-07-25 17:01:39.361347",
+ "modified": "2024-04-08 11:30:11.059234",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Subscription Bill",

@@ -19,8 +19,8 @@
   "remarks",
   "technical_remarks",
   "subscription_program_serial_number_section",
-  "client_own_decoder_card_information",
   "section_break_16",
+  "co_unit_address",
   "ird_model1",
   "smart_card1",
   "cam1",
@@ -170,7 +170,7 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==0",
+   "allow_on_submit": 1,
    "fieldname": "ird_model",
    "fieldtype": "Link",
    "label": "IRD Model No.",
@@ -184,33 +184,25 @@
    "label": "is_check"
   },
   {
-   "default": "0",
-   "fieldname": "client_own_decoder_card_information",
-   "fieldtype": "Check",
-   "label": "Client Own Decoder Card Information"
-  },
-  {
-   "depends_on": "eval:doc.client_own_decoder_card_information==1",
    "fieldname": "column_break_18",
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==0",
    "fieldname": "break1",
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==1",
    "fieldname": "section_break_16",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Client Own Decoder Card Information"
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==0",
    "fieldname": "section_break_23",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Decoder and Card Information"
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==0",
+   "allow_on_submit": 1,
    "fieldname": "smart_card",
    "fieldtype": "Link",
    "label": "SMART CARD",
@@ -218,7 +210,7 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==0",
+   "allow_on_submit": 1,
    "fieldname": "cam",
    "fieldtype": "Link",
    "label": "CAM",
@@ -226,45 +218,46 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==1",
+   "allow_on_submit": 1,
    "fieldname": "ird_serialno1",
    "fieldtype": "Data",
    "label": "IRD Model Serial#",
-   "unique": 1
+   "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==1",
+   "allow_on_submit": 1,
    "fieldname": "smart_card_serialno1",
    "fieldtype": "Data",
-   "label": "SMART CARD Serial#"
+   "label": "SMART CARD Serial#",
+   "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==1",
+   "allow_on_submit": 1,
    "fieldname": "cam_serialno1",
    "fieldtype": "Data",
-   "label": "CAM Serial#"
+   "label": "CAM Serial#",
+   "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==1",
    "fieldname": "ird_model1",
    "fieldtype": "Data",
-   "label": "IRD Model No."
+   "label": "IRD Model No.",
+   "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==1",
    "fieldname": "smart_card1",
    "fieldtype": "Data",
-   "label": "SMART CARD"
+   "label": "SMART CARD",
+   "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==1",
    "fieldname": "cam1",
    "fieldtype": "Data",
    "label": "CAM",
-   "unique": 1
+   "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==0",
+   "allow_on_submit": 1,
    "fieldname": "smart_card_serialno",
    "fieldtype": "Link",
    "label": "SMART CARD Serial#",
@@ -272,7 +265,7 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==0",
+   "allow_on_submit": 1,
    "fieldname": "cam_serialno",
    "fieldtype": "Link",
    "label": "CAM Serial#",
@@ -280,7 +273,7 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:doc.client_own_decoder_card_information==0",
+   "allow_on_submit": 1,
    "fieldname": "ird_model_serialno",
    "fieldtype": "Link",
    "label": "IRD Model Serial#",
@@ -295,11 +288,16 @@
    "fieldname": "unit_address",
    "fieldtype": "Data",
    "label": "Unit Address"
+  },
+  {
+   "fieldname": "co_unit_address",
+   "fieldtype": "Data",
+   "label": "Client Owned Unit Address"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2024-02-27 15:06:16.798646",
+ "modified": "2024-05-20 13:45:17.813352",
  "modified_by": "Administrator",
  "module": "Subscription",
  "name": "Program Activation Item",
